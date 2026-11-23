@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fa" dir="rtl" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>دیالوگ — دستیار گرداننده مافیا و بازی‌های نقش‌محور</title>
+    <meta name="description" content="اپلیکیشن آفلاین دیالوگ (Dialogue Game Club) برای گردانندگان بازی‌های مافیا و نقش‌محور — توزیع محرمانه نقش‌ها و مدیریت میز" />
+    <meta property="og:title" content="دیالوگ — دستیار گرداننده مافیا و بازی‌های نقش‌محور" />
+    <meta property="og:description" content="اپلیکیشن آفلاین دیالوگ (Dialogue Game Club) برای گردانندگان بازی‌های مافیا و نقش‌محور — توزیع محرمانه نقش‌ها و مدیریت میز" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#090B10" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="دیالوگ" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('ravi_naghsh_prefs_v1');
+          var mode = raw ? (JSON.parse(raw).themeMode || 'dark') : 'dark';
+          var isDark = mode !== 'light';
+          document.documentElement.classList.toggle('dark', isDark);
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', isDark ? '#090B10' : '#F4F5F7');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-[#F4F5F7] dark:bg-[#090B10] text-slate-900 dark:text-slate-100 antialiased selection:bg-amber-500/30 selection:text-amber-950 dark:selection:text-amber-100 transition-colors">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

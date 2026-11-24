@@ -164,7 +164,7 @@ export const DistributionCompleteScreen: React.FC<DistributionCompleteScreenProp
           className="w-full min-h-[58px] rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/15"
         >
           <Timer className="w-5 h-5" />
-          <span>ورود به کنسول گرداننده (مدیریت شب، دادگاه و تایمر)</span>
+          <span>ورود به ابزار تایمر و صدا</span>
         </button>
 
         <div className="flex flex-col sm:flex-row gap-3">

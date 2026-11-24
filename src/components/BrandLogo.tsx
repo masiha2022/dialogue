@@ -20,7 +20,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'sm', className = '
     >
       {!failed ? (
         <img
-          src="/assets/aistudio/image_8679b281.png"
+          src="/assets/aistudio/image_83_94a76e37.png"
           alt="لوگوی دیالوگ — Dialogue"
           referrerPolicy="no-referrer"
           onError={() => setFailed(true)}

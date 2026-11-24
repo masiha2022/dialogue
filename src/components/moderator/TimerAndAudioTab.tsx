@@ -1,30 +1,29 @@
 import React from 'react';
 import {
   BellRing,
-  Dices,
-  Moon,
   Music,
   Pause,
   Play,
   RotateCcw,
   SlidersHorizontal,
-  Sun,
   Timer,
+  Trash2,
+  Upload,
   Volume2,
   VolumeX,
 } from 'lucide-react';
 import {
   AlarmSoundId,
   AppPreferences,
+  CustomNightTrack,
   NightTrackId,
-  PlayerTrackerState,
 } from '../../types/game';
-import { toPersianDigits } from '../../utils/persian';
+import { saveCustomAudioFile, deleteCustomAudioFile } from '../../utils/audioStorage';
+import { generateLocalId, toPersianDigits } from '../../utils/persian';
 import {
   ALARM_SOUND_OPTIONS,
   NIGHT_TRACK_OPTIONS,
   playCountdownTick,
-  playOfflineBeep,
   playTimerEndAlarm,
   unlockAudioContext,
 } from '../../utils/soundEngine';
@@ -39,7 +38,6 @@ interface TimerAndAudioTabProps {
   onOpenCustomization: () => void;
   onToggleMute: () => void;
   onSelectPreset: (secs: number) => void;
-  onAdjustTimer: (delta: number) => void;
   onTogglePlayPause: () => void;
   onResetTimer: () => void;
   isAmbientPlaying: boolean;
@@ -47,9 +45,6 @@ interface TimerAndAudioTabProps {
   onToggleAmbient: () => void;
   onChangeAmbientVolume: (vol: number) => void;
   onSelectNightTrack: (trackId: NightTrackId) => void;
-  alivePlayers: PlayerTrackerState[];
-  pickedStarter: number | null;
-  onPickRandomAlive: () => void;
 }
 
 function formatCountdown(secs: number) {
@@ -70,7 +65,6 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
   onOpenCustomization,
   onToggleMute,
   onSelectPreset,
-  onAdjustTimer,
   onTogglePlayPause,
   onResetTimer,
   isAmbientPlaying,
@@ -78,9 +72,6 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
   onToggleAmbient,
   onChangeAmbientVolume,
   onSelectNightTrack,
-  alivePlayers,
-  pickedStarter,
-  onPickRandomAlive,
 }) => {
   const progressPct =
     durationSeconds > 0 ? Math.round((remainingSeconds / durationSeconds) * 100) : 0;
@@ -91,9 +82,12 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
   const isTimeUp = remainingSeconds === 0;
   const isTickEnabled = preferences.warningCountdownSeconds > 0;
 
-  const pickedObj = alivePlayers.find((p) => p.playerNumber === pickedStarter);
+  const customTracks = preferences.customNightTracks ?? [];
+  const selectedCustomId = preferences.nightTrackId.startsWith('custom:')
+    ? preferences.nightTrackId.slice('custom:'.length)
+    : null;
 
-  const handleToggleTenSecWarning = () => {
+  const handleToggleLastWords = () => {
     unlockAudioContext();
     const nextSec = isTickEnabled ? 0 : 10;
     onUpdatePreferences({
@@ -102,6 +96,60 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
     });
     if (nextSec > 0 && !isMuted) {
       playCountdownTick(10);
+    }
+  };
+
+  const handleUploadCustomTracks = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    const files: File[] = fileList ? Array.from(fileList) : [];
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    const addedTracks: CustomNightTrack[] = [];
+    for (const file of files) {
+      const id = generateLocalId('trk');
+      try {
+        await saveCustomAudioFile(`night_custom_${id}`, file);
+        addedTracks.push({
+          id,
+          name: file.name.replace(/\.[^/.]+$/, '') || file.name,
+        });
+      } catch {
+        // Ignore single file failure
+      }
+    }
+
+    if (addedTracks.length === 0) return;
+    const nextTracks = [...customTracks, ...addedTracks];
+    const nextSelected: NightTrackId = `custom:${addedTracks[0].id}`;
+    onUpdatePreferences({
+      ...preferences,
+      customNightTracks: nextTracks,
+      nightTrackId: nextSelected,
+    });
+  };
+
+  const handleDeleteSelectedCustomTrack = async () => {
+    if (selectedCustomId) {
+      await deleteCustomAudioFile(`night_custom_${selectedCustomId}`);
+      const nextTracks = customTracks.filter((t) => t.id !== selectedCustomId);
+      const fallbackTrack: NightTrackId =
+        nextTracks.length > 0 ? `custom:${nextTracks[0].id}` : 'wind-night';
+      onUpdatePreferences({
+        ...preferences,
+        customNightTracks: nextTracks,
+        nightTrackId: fallbackTrack,
+      });
+      return;
+    }
+
+    if (preferences.nightTrackId === 'custom' && preferences.nightCustomTrackName) {
+      await deleteCustomAudioFile('night_music');
+      onUpdatePreferences({
+        ...preferences,
+        nightCustomTrackName: '',
+        nightTrackId: 'wind-night',
+      });
     }
   };
 
@@ -193,11 +241,11 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
           </p>
         </div>
 
-        {/* Quick 10s Warning Toggle & Sound Test Bar */}
+        {/* Last Words Toggle & Sound Test Bar */}
         <div className="rounded-2xl border border-slate-200 dark:border-white/14 bg-slate-50 dark:bg-[#0B0E15] p-3 flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
-            onClick={handleToggleTenSecWarning}
+            onClick={handleToggleLastWords}
             className={`min-h-[44px] px-3 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-colors ${
               isTickEnabled
                 ? 'border-amber-500/55 bg-amber-500/15 dark:bg-amber-500/18 text-amber-800 dark:text-amber-200'
@@ -205,11 +253,7 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
             }`}
           >
             <BellRing className="w-4 h-4" />
-            <span>
-              {isTickEnabled
-                ? `صدای تیک ${toPersianDigits(preferences.warningCountdownSeconds)} ثانیه آخر: روشن`
-                : 'صدای تیک ۱۰ ثانیه آخر: خاموش'}
-            </span>
+            <span>{isTickEnabled ? 'کلام آخر : فعال' : 'کلام آخر : غیرفعال'}</span>
           </button>
 
           <button
@@ -221,11 +265,11 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
             className="min-h-[44px] px-3 rounded-xl border border-slate-300 dark:border-white/18 bg-white dark:bg-[#161B28] hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Volume2 className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-            <span>تست صدای تیک</span>
+            <span>تست</span>
           </button>
         </div>
 
-        {/* Custom Presets */}
+        {/* Custom Presets (15s, 30s, 60s default, editable in Settings) */}
         <div className="flex flex-wrap gap-2">
           {preferences.customTimerPresets.map((secs) => {
             const isSelected = durationSeconds === secs && !isRunning;
@@ -246,46 +290,27 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
           })}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onAdjustTimer(-10)}
-            className="min-h-[56px] px-4 rounded-xl border border-slate-300 dark:border-white/18 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 text-sm font-extrabold text-slate-900 dark:text-white cursor-pointer tabular-nums"
-          >
-            -۱۰ ث
-          </button>
-
+        {/* Start/Pause (icon-only) + Reset */}
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={onTogglePlayPause}
-            className="flex-1 min-h-[56px] rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-amber-500/15"
+            aria-label={isRunning ? 'توقف تایمر' : 'شروع تایمر'}
+            className="flex-1 min-h-[56px] rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-amber-500/15"
           >
             {isRunning ? (
-              <>
-                <Pause className="w-5 h-5 fill-slate-950" />
-                <span>توقف</span>
-              </>
+              <Pause className="w-6 h-6 fill-slate-950" />
             ) : (
-              <>
-                <Play className="w-5 h-5 fill-slate-950" />
-                <span>{remainingSeconds === 0 ? 'شروع مجدد' : 'شروع تایمر'}</span>
-              </>
+              <Play className="w-6 h-6 fill-slate-950" />
             )}
           </button>
 
           <button
             type="button"
-            onClick={() => onAdjustTimer(10)}
-            className="min-h-[56px] px-4 rounded-xl border border-slate-300 dark:border-white/18 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 text-sm font-extrabold text-slate-900 dark:text-white cursor-pointer tabular-nums"
-          >
-            +۱۰ ث
-          </button>
-
-          <button
-            type="button"
             onClick={onResetTimer}
-            className="min-h-[56px] min-w-[54px] rounded-xl border border-slate-300 dark:border-white/18 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white cursor-pointer"
+            className="min-h-[56px] min-w-[56px] px-4 rounded-xl border border-slate-300 dark:border-white/18 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-900 dark:text-white cursor-pointer"
             aria-label="ریست تایمر"
+            title="ریست تایمر"
           >
             <RotateCcw className="w-5 h-5" />
           </button>
@@ -329,38 +354,91 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
         </div>
       </section>
 
-      {/* Column 2: Night Cover Ambient Audio + Random Starter */}
+      {/* Column 2: Night Cover Whisper-Masking Audio */}
       <div className="lg:col-span-5 space-y-5">
         <section className="rounded-3xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-5 space-y-4 shadow-sm dark:shadow-none">
           <div className="flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <Music className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span>پخش‌کننده صدای شب</span>
+                <span>پخش‌کننده صدای شب (ضد نجوا)</span>
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                انتخاب آهنگ از ۵ نوای آفلاین یا فایل صوتی دلخواه گوشی برای پوشاندن صداهای شب
+                صداهای متراکم و پرانرژی برای پوشاندن کامل پچ‌پچ و حرکت مافیا، یا افزودن چند آهنگ دلخواه از گوشی
               </p>
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
-              انتخاب آهنگ پس‌زمینه شب:
+              انتخاب صدای پوشش شب:
             </label>
             <select
               value={preferences.nightTrackId}
               onChange={(e) => onSelectNightTrack(e.target.value as NightTrackId)}
               className="w-full min-h-[46px] rounded-xl border border-slate-300 dark:border-white/18 bg-slate-50 dark:bg-[#161B28] px-3 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
             >
-              {NIGHT_TRACK_OPTIONS.map((t) => (
-                <option key={t.id} value={t.id} className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white">
-                  {t.id === 'custom' && preferences.nightCustomTrackName
-                    ? `آهنگ من: ${preferences.nightCustomTrackName}`
-                    : t.label}
-                </option>
-              ))}
+              <optgroup label="صداهای ضد نجوا (آفلاین)">
+                {NIGHT_TRACK_OPTIONS.map((t) => (
+                  <option
+                    key={t.id}
+                    value={t.id}
+                    className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
+                  >
+                    {t.label}
+                  </option>
+                ))}
+              </optgroup>
+
+              {(customTracks.length > 0 || preferences.nightCustomTrackName) && (
+                <optgroup label="آهنگ‌های دلخواه من">
+                  {preferences.nightCustomTrackName && (
+                    <option
+                      value="custom"
+                      className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
+                    >
+                      دلخواه: {preferences.nightCustomTrackName}
+                    </option>
+                  )}
+                  {customTracks.map((trk) => (
+                    <option
+                      key={trk.id}
+                      value={`custom:${trk.id}`}
+                      className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
+                    >
+                      دلخواه: {trk.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
+
+            <div className="flex items-center gap-2">
+              <label className="flex-1 min-h-[42px] px-3 rounded-xl border border-amber-500/40 bg-amber-500/12 hover:bg-amber-500/20 text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                <Upload className="w-4 h-4 shrink-0" />
+                <span>افزودن آهنگ دلخواه از گوشی</span>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  multiple
+                  onChange={(e) => void handleUploadCustomTracks(e)}
+                  className="hidden"
+                />
+              </label>
+
+              {(selectedCustomId !== null ||
+                (preferences.nightTrackId === 'custom' && preferences.nightCustomTrackName)) && (
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteSelectedCustomTrack()}
+                  className="min-h-[42px] min-w-[42px] rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-300 flex items-center justify-center cursor-pointer"
+                  aria-label="حذف آهنگ دلخواه انتخاب‌شده"
+                  title="حذف آهنگ دلخواه انتخاب‌شده"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <button
@@ -403,64 +481,8 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
               className="w-full accent-blue-600 dark:accent-blue-400 cursor-pointer"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-200 dark:border-white/12">
-            <button
-              type="button"
-              onClick={() => {
-                unlockAudioContext();
-                if (!isMuted) playOfflineBeep('night');
-              }}
-              className="min-h-[48px] rounded-xl border border-blue-500/35 bg-blue-500/10 dark:bg-blue-500/12 hover:bg-blue-500/20 text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-200 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Moon className="w-[18px] h-[18px]" />
-              <span>زنگ شب شد</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                unlockAudioContext();
-                if (!isMuted) playOfflineBeep('day');
-              }}
-              className="min-h-[48px] rounded-xl border border-amber-500/35 bg-amber-500/10 dark:bg-amber-500/12 hover:bg-amber-500/20 text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-200 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sun className="w-[18px] h-[18px]" />
-              <span>زنگ صبح شد</span>
-            </button>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-5 space-y-3 shadow-sm dark:shadow-none">
-          <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">قرعه‌کشی شروع‌کننده صحبت روز</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300">
-            انتخاب کاملاً تصادفی یک بازیکن از بین افراد زنده برای شروع نوبت‌دهی
-          </p>
-
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onPickRandomAlive}
-              disabled={alivePlayers.length === 0}
-              className="min-h-[50px] px-4 rounded-xl border border-amber-500/50 bg-amber-500/15 dark:bg-amber-500/18 hover:bg-amber-500/25 disabled:opacity-40 text-xs sm:text-sm font-extrabold text-amber-800 dark:text-amber-200 flex items-center gap-2 cursor-pointer"
-            >
-              <Dices className="w-5 h-5" />
-              <span>انتخاب تصادفی</span>
-            </button>
-
-            {pickedObj && (
-              <div className="text-left">
-                <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
-                  {pickedObj.playerName}
-                </div>
-                <div className="text-xs font-bold text-amber-700 dark:text-amber-300 tabular-nums">
-                  صندلی {toPersianDigits(pickedObj.playerNumber)}
-                </div>
-              </div>
-            )}
-          </div>
         </section>
       </div>
     </div>
   );
 };
-

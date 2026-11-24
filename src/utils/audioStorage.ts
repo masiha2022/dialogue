@@ -7,7 +7,7 @@ const DB_NAME = 'ravi_naghsh_audio_db';
 const STORE_NAME = 'audio_files';
 const DB_VERSION = 1;
 
-export type CustomAudioSlot = 'night_music' | 'timer_alarm';
+export type CustomAudioSlot = 'night_music' | 'timer_alarm' | `night_custom_${string}`;
 
 function openAudioDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

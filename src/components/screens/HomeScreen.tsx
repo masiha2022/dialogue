@@ -188,10 +188,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               triggerHaptic('confirm', hapticEnabled);
               onStartSelectScenario();
             }}
-            className="group relative w-40 h-40 sm:w-48 sm:h-48 rounded-full bg-[#C4161C] hover:bg-[#AD1217] dark:bg-amber-500 dark:hover:bg-amber-400 active:scale-[0.96] text-white dark:text-slate-950 font-extrabold text-2xl sm:text-3xl flex flex-col items-center justify-center gap-2 shadow-2xl shadow-red-600/25 dark:shadow-amber-500/25 ring-8 ring-red-600/12 dark:ring-amber-500/15 transition-all cursor-pointer select-none"
+            aria-label="شروع بازی"
+            className="group relative w-[130px] h-[130px] pl-0 -mb-[19px] rounded-full bg-[#C4161C] hover:bg-[#AD1217] dark:bg-amber-500 dark:hover:bg-amber-400 active:scale-[0.96] text-white dark:text-slate-950 font-extrabold flex items-center justify-center shadow-2xl shadow-red-600/25 dark:shadow-amber-500/25 ring-8 ring-red-600/12 dark:ring-amber-500/15 transition-all cursor-pointer select-none"
           >
-            <Play className="w-10 h-10 sm:w-11 sm:h-11 fill-current transition-transform group-hover:scale-105" />
-            <span>شروع</span>
+            <Play className="w-14 h-14 sm:w-16 sm:h-16 fill-current transition-transform group-hover:scale-105" />
           </button>
         </div>
 
@@ -202,11 +202,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => triggerHaptic('tap', hapticEnabled)}
-            aria-label="صفحه اینستاگرام دیالوگ (@dialogue_gameclub)"
+            aria-label="صفحه اینستاگرام کافه دیالوگ (@dialogue_gameclub)"
             className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#C4161C] dark:text-amber-400 underline underline-offset-4 hover:opacity-80 transition-opacity py-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.85)] dark:drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]"
           >
             <Instagram className="w-4 h-4 shrink-0" />
-            <span>اینستاگرام دیالوگ</span>
+            <span>کافه دیالوگ</span>
           </a>
         </div>
       </main>

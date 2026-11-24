@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ArrowRight,
   BookOpen,
-  Copy,
   Download,
   Home,
   Layers,
@@ -10,10 +9,8 @@ import {
   Play,
   Plus,
   RotateCcw,
-  Share2,
   SlidersHorizontal,
   Timer,
-  Trash2,
 } from 'lucide-react';
 import { Scenario } from '../../types/game';
 import { triggerHaptic } from '../../utils/haptics';
@@ -24,11 +21,8 @@ interface ScenariosScreenProps {
   onBackHome: () => void;
   onCreateScenario: () => void;
   onEditScenario: (scenario: Scenario) => void;
-  onDuplicateScenario: (scenario: Scenario) => void;
-  onDeleteScenario: (scenarioId: string) => void;
   onStartGame: (scenario: Scenario) => void;
   onOpenRules: (scenario: Scenario) => void;
-  onShareScenario: (scenario: Scenario) => void;
   onOpenImport: () => void;
   onRestoreLibrary: () => void;
   onOpenTools: () => void;
@@ -41,36 +35,13 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
   onBackHome,
   onCreateScenario,
   onEditScenario,
-  onDuplicateScenario,
-  onDeleteScenario,
   onStartGame,
   onOpenRules,
-  onShareScenario,
   onOpenImport,
   onRestoreLibrary,
   onOpenTools,
   onOpenCustomization,
 }) => {
-  const [confirmDeleteTarget, setConfirmDeleteTarget] = useState<Scenario | null>(null);
-  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null);
-
-  const handleConfirmDelete = () => {
-    if (!confirmDeleteTarget) return;
-    triggerHaptic('warning', hapticEnabled);
-    onDeleteScenario(confirmDeleteTarget.id);
-    setConfirmDeleteTarget(null);
-  };
-
-  const handleDuplicate = (scenario: Scenario) => {
-    triggerHaptic('confirm', hapticEnabled);
-    onDuplicateScenario(scenario);
-    setDuplicateNotice(`یک نسخه کپی از «${scenario.name}» ساخته شد.`);
-    window.setTimeout(() => {
-      setDuplicateNotice((prev) =>
-        prev === `یک نسخه کپی از «${scenario.name}» ساخته شد.` ? null : prev
-      );
-    }, 2600);
-  };
 
   return (
     <div className="relative z-10 min-h-dvh flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-24 sm:pb-12 transition-colors">
@@ -141,12 +112,6 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
           </button>
         </section>
 
-        {duplicateNotice && (
-          <div className="mb-4 rounded-2xl border border-emerald-500/35 bg-emerald-500/12 px-4 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-200">
-            {duplicateNotice}
-          </div>
-        )}
-
         {scenarios.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/15 bg-white dark:bg-[#121620] p-10 text-center max-w-lg mx-auto my-8">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
@@ -186,55 +151,19 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
               return (
                 <article
                   key={scenario.id}
-                  className="rounded-2xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-4 flex flex-col justify-between gap-3 shadow-sm dark:shadow-none"
+                  className="rounded-2xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-3 sm:p-3.5 shadow-sm dark:shadow-none"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('confirm', hapticEnabled);
-                      onStartGame(scenario);
-                    }}
-                    className="w-full min-h-[56px] px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                  >
-                    <Play className="w-5 h-5 fill-slate-950 shrink-0" />
-                    <span className="leading-snug text-center">{scenario.name}</span>
-                  </button>
-
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <div className="flex items-stretch gap-2">
                     <button
                       type="button"
                       onClick={() => {
-                        triggerHaptic('tap', hapticEnabled);
-                        onShareScenario(scenario);
+                        triggerHaptic('confirm', hapticEnabled);
+                        onStartGame(scenario);
                       }}
-                      className="min-h-[48px] px-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-700 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                      aria-label={`اشتراک‌گذاری سناریو ${scenario.name}`}
+                      className="flex-1 min-w-0 min-h-[56px] px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-sm sm:text-base flex items-center justify-start gap-2.5 transition-all cursor-pointer shadow-sm text-right"
                     >
-                      <Share2 className="w-4 h-4 shrink-0" />
-                      <span className="text-[11px] font-bold leading-none">اشتراک</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicate(scenario)}
-                      className="min-h-[48px] px-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-700 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                      aria-label={`ساخت کپی از سناریو ${scenario.name}`}
-                    >
-                      <Copy className="w-4 h-4 shrink-0" />
-                      <span className="text-[11px] font-bold leading-none">کپی</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic('tap', hapticEnabled);
-                        onEditScenario(scenario);
-                      }}
-                      className="min-h-[48px] px-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-700 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                      aria-label={`ویرایش سناریو ${scenario.name}`}
-                    >
-                      <Pencil className="w-4 h-4 shrink-0" />
-                      <span className="text-[11px] font-bold leading-none">ویرایش</span>
+                      <Play className="w-5 h-5 fill-slate-950 shrink-0" />
+                      <span className="leading-snug">{scenario.name}</span>
                     </button>
 
                     <button
@@ -243,7 +172,7 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
                         triggerHaptic('tap', hapticEnabled);
                         onOpenRules(scenario);
                       }}
-                      className="min-h-[48px] px-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-800 dark:text-blue-200 transition-colors cursor-pointer"
+                      className="min-w-[56px] min-h-[56px] px-2.5 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-800 dark:text-blue-200 transition-colors cursor-pointer shrink-0"
                       aria-label={`قوانین و راهنمای ${scenario.name}`}
                     >
                       <BookOpen className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-300" />
@@ -254,13 +183,13 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
                       type="button"
                       onClick={() => {
                         triggerHaptic('tap', hapticEnabled);
-                        setConfirmDeleteTarget(scenario);
+                        onEditScenario(scenario);
                       }}
-                      className="min-h-[48px] px-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-700 dark:text-slate-100 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/15 transition-colors cursor-pointer"
-                      aria-label={`حذف سناریو ${scenario.name}`}
+                      className="min-w-[56px] min-h-[56px] px-2.5 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-700 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                      aria-label={`ویرایش سناریو ${scenario.name}`}
                     >
-                      <Trash2 className="w-4 h-4 shrink-0" />
-                      <span className="text-[11px] font-bold leading-none">حذف</span>
+                      <Pencil className="w-4 h-4 shrink-0" />
+                      <span className="text-[11px] font-bold leading-none">ویرایش</span>
                     </button>
                   </div>
                 </article>
@@ -322,34 +251,6 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
           </button>
         </div>
       </nav>
-
-      {/* Delete Confirmation Modal */}
-      {confirmDeleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-slate-200 dark:border-white/12 bg-white dark:bg-[#121620] p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">حذف سناریو</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
-              آیا از حذف سناریو «{confirmDeleteTarget.name}» مطمئن هستید؟ این کار قابل بازگشت نیست.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="flex-1 min-h-[48px] rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm cursor-pointer"
-              >
-                بله، حذف شود
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDeleteTarget(null)}
-                className="flex-1 min-h-[48px] rounded-xl border border-slate-300 dark:border-white/12 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200 font-semibold text-sm cursor-pointer"
-              >
-                انصراف
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

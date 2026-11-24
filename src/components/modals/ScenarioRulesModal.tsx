@@ -72,7 +72,7 @@ export const ScenarioRulesModal: React.FC<ScenarioRulesModalProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              نقش‌ها در سطوح سه‌گانه
+              نقشها
             </button>
           </div>
         </div>

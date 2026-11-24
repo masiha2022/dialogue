@@ -20,9 +20,10 @@ const MOD_STATE_KEY = 'ravi_naghsh_mod_state_v1';
 const PREFS_KEY = 'ravi_naghsh_prefs_v1';
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
-  nightTrackId: 'rain-drone',
+  nightTrackId: 'wind-night',
   nightCustomTrackName: '',
-  nightVolume: 0.45,
+  customNightTracks: [],
+  nightVolume: 0.65,
   alarmSoundId: 'bell',
   alarmCustomName: '',
   revealSoundId: 'magic',
@@ -30,10 +31,10 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   hapticFeedbackEnabled: true,
   vibrateOnTimerEnd: true,
   warningCountdownSeconds: 10,
-  defaultSpeechSeconds: 45,
+  defaultSpeechSeconds: 30,
   challengeSeconds: 20,
   defenseSeconds: 60,
-  customTimerPresets: [20, 30, 45, 60, 90],
+  customTimerPresets: [15, 30, 60],
   revealMode: 'tap',
   holdRevealMs: 650,
   autoHideAfterSeconds: 0,
@@ -45,16 +46,30 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   homeBackdropCustomDataUrl: '',
 };
 
+const LEGACY_TIMER_PRESETS = [20, 30, 45, 60, 90];
+
 export function loadAppPreferences(): AppPreferences {
   try {
     const raw = window.localStorage.getItem(PREFS_KEY);
     if (!raw) return DEFAULT_APP_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<AppPreferences>;
+    const hasLegacyPresets =
+      Array.isArray(parsed.customTimerPresets) &&
+      parsed.customTimerPresets.length === LEGACY_TIMER_PRESETS.length &&
+      parsed.customTimerPresets.every((v, i) => v === LEGACY_TIMER_PRESETS[i]);
+
     return {
       ...DEFAULT_APP_PREFERENCES,
       ...parsed,
+      customNightTracks: Array.isArray(parsed.customNightTracks) ? parsed.customNightTracks : [],
+      defaultSpeechSeconds:
+        hasLegacyPresets && parsed.defaultSpeechSeconds === 45
+          ? DEFAULT_APP_PREFERENCES.defaultSpeechSeconds
+          : parsed.defaultSpeechSeconds ?? DEFAULT_APP_PREFERENCES.defaultSpeechSeconds,
       customTimerPresets:
-        Array.isArray(parsed.customTimerPresets) && parsed.customTimerPresets.length > 0
+        Array.isArray(parsed.customTimerPresets) &&
+        parsed.customTimerPresets.length > 0 &&
+        !hasLegacyPresets
           ? parsed.customTimerPresets
           : DEFAULT_APP_PREFERENCES.customTimerPresets,
     };

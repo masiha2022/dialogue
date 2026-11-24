@@ -139,6 +139,8 @@ export default function App() {
 
   const handleDeleteScenario = (scenarioId: string) => {
     setScenarios((prev) => prev.filter((s) => s.id !== scenarioId));
+    setEditingScenario(null);
+    setScreen('scenarios');
   };
 
   const handleDuplicateScenario = (scenario: Scenario) => {
@@ -285,6 +287,9 @@ export default function App() {
             setEditingScenario(null);
             setScreen('scenarios');
           }}
+          onShareScenario={(scenario) => setShareModalTarget(scenario)}
+          onDuplicateScenario={handleDuplicateScenario}
+          onDeleteScenario={handleDeleteScenario}
         />
       ) : screen === 'scenarios' ? (
         <ScenariosScreen
@@ -293,11 +298,8 @@ export default function App() {
           onBackHome={() => setScreen('home')}
           onCreateScenario={handleCreateScenario}
           onEditScenario={handleEditScenario}
-          onDuplicateScenario={handleDuplicateScenario}
-          onDeleteScenario={handleDeleteScenario}
           onStartGame={handleStartGameSetup}
           onOpenRules={(scenario) => setRulesModalTarget({ scenario, tierKey: 'basic' })}
-          onShareScenario={(scenario) => setShareModalTarget(scenario)}
           onOpenImport={() => setShowImportModal(true)}
           onRestoreLibrary={handleRestoreLibrary}
           onOpenTools={() => {

@@ -38,13 +38,21 @@ export type RoleTeam = 'mafia' | 'citizen' | 'independent';
 
 export type RevealMode = 'tap' | 'hold';
 
-export type NightTrackId =
+export type BuiltInNightTrackId =
   | 'rain-drone'
-  | 'heartbeat'
-  | 'cello-noir'
   | 'wind-night'
+  | 'heartbeat'
+  | 'techno-pulse'
+  | 'cello-noir'
   | 'tick-clock'
-  | 'custom';
+  | 'crowd-murmur';
+
+export type NightTrackId = BuiltInNightTrackId | 'custom' | `custom:${string}`;
+
+export interface CustomNightTrack {
+  id: string;
+  name: string;
+}
 
 export type AlarmSoundId =
   | 'bell'
@@ -66,6 +74,7 @@ export type HomeBackdropId =
 export interface AppPreferences {
   nightTrackId: NightTrackId;
   nightCustomTrackName: string;
+  customNightTracks: CustomNightTrack[];
   nightVolume: number;
   alarmSoundId: AlarmSoundId;
   alarmCustomName: string;

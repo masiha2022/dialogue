@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Save,
+  Share2,
   Sparkles,
   Trash2,
   Users,
@@ -31,6 +32,9 @@ interface ScenarioEditorScreenProps {
   isDark?: boolean;
   onSave: (scenario: Scenario) => void;
   onCancel: () => void;
+  onShareScenario: (scenario: Scenario) => void;
+  onDuplicateScenario: (scenario: Scenario) => void;
+  onDeleteScenario: (scenarioId: string) => void;
 }
 
 const TIER_KEYS: ScenarioTierKey[] = ['basic', 'advanced', 'expert'];
@@ -238,6 +242,9 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
   isDark = true,
   onSave,
   onCancel,
+  onShareScenario,
+  onDuplicateScenario,
+  onDeleteScenario,
 }) => {
   const isEditing = Boolean(initialScenario);
 
@@ -288,6 +295,8 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
   const [showTextEditorModal, setShowTextEditorModal] = useState(false);
   const [persianSourceText, setPersianSourceText] = useState('');
   const [textEditorError, setTextEditorError] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null);
 
   const currentTier = tiers[activeTierKey];
   const currentTotalRoles = getTotalRoleCount(currentTier.roles);
@@ -500,6 +509,63 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
       </header>
 
       <main className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-6 space-y-6 flex-1">
+        {isEditing && initialScenario && (
+          <section className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-3.5 sm:p-4 space-y-3 shadow-xs dark:shadow-none">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap', hapticEnabled);
+                  onShareScenario(buildDraftScenario());
+                }}
+                className="min-h-[48px] px-3 py-2 flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-800 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-slate-200 dark:hover:bg-white/10 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                aria-label={`اشتراک‌گذاری سناریو ${initialScenario.name}`}
+              >
+                <Share2 className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>اشتراک</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('confirm', hapticEnabled);
+                  const draft = buildDraftScenario();
+                  onDuplicateScenario(draft);
+                  const msg = `یک نسخه کپی از «${draft.name}» ساخته شد.`;
+                  setDuplicateNotice(msg);
+                  window.setTimeout(() => {
+                    setDuplicateNotice((prev) => (prev === msg ? null : prev));
+                  }, 3000);
+                }}
+                className="min-h-[48px] px-3 py-2 flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/14 bg-slate-100 dark:bg-[#171D2B] text-slate-800 dark:text-slate-100 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-200 dark:hover:bg-white/10 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                aria-label={`ساخت کپی از سناریو ${initialScenario.name}`}
+              >
+                <Copy className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span>کپی</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap', hapticEnabled);
+                  setConfirmDeleteOpen(true);
+                }}
+                className="min-h-[48px] px-3 py-2 flex items-center justify-center gap-2 rounded-xl border border-red-500/25 bg-red-500/8 hover:bg-red-500/18 text-red-700 dark:text-red-300 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                aria-label={`حذف سناریو ${initialScenario.name}`}
+              >
+                <Trash2 className="w-4 h-4 shrink-0" />
+                <span>حذف</span>
+              </button>
+            </div>
+
+            {duplicateNotice && (
+              <div className="rounded-xl border border-emerald-500/35 bg-emerald-500/12 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-200">
+                {duplicateNotice}
+              </div>
+            )}
+          </section>
+        )}
+
         {formError && (
           <div
             role="alert"
@@ -911,6 +977,38 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
                 className="min-h-[48px] px-4 rounded-xl border border-slate-200 dark:border-white/12 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200 font-semibold text-xs sm:text-sm cursor-pointer"
               >
                 دانلود فایل .txt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteOpen && initialScenario && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-slate-200 dark:border-white/12 bg-white dark:bg-[#121620] p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">حذف سناریو</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+              آیا از حذف سناریو «{initialScenario.name}» مطمئن هستید؟ این کار قابل بازگشت نیست.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('warning', hapticEnabled);
+                  setConfirmDeleteOpen(false);
+                  onDeleteScenario(initialScenario.id);
+                }}
+                className="flex-1 min-h-[48px] rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm cursor-pointer"
+              >
+                بله، حذف شود
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteOpen(false)}
+                className="flex-1 min-h-[48px] rounded-xl border border-slate-300 dark:border-white/12 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200 font-semibold text-sm cursor-pointer"
+              >
+                انصراف
               </button>
             </div>
           </div>

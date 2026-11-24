@@ -21,6 +21,7 @@ import {
 import {
   AlarmSoundId,
   AppPreferences,
+  CustomNightTrack,
   HomeBackdropId,
   NightTrackId,
   RevealSoundId,
@@ -28,7 +29,7 @@ import {
 import { deleteCustomAudioFile, saveCustomAudioFile } from '../../utils/audioStorage';
 import { compressImageFileToDataUrl, HOME_BACKDROP_OPTIONS } from '../../utils/backdrop';
 import { triggerHaptic } from '../../utils/haptics';
-import { toPersianDigits } from '../../utils/persian';
+import { generateLocalId, toPersianDigits } from '../../utils/persian';
 import {
   ALARM_SOUND_OPTIONS,
   NIGHT_TRACK_OPTIONS,
@@ -82,19 +83,41 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
   };
 
   const handleUploadNightAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const fileList = e.target.files;
+    const files: File[] = fileList ? Array.from(fileList) : [];
     e.target.value = '';
-    if (!file) return;
-    try {
-      await saveCustomAudioFile('night_music', file);
-      update({
-        nightTrackId: 'custom',
-        nightCustomTrackName: file.name,
-      });
-      setAudioStatusMsg(`آهنگ شب «${file.name}» برای استفاده آفلاین ذخیره شد.`);
-    } catch {
-      setAudioStatusMsg('خطا در ذخیره فایل صوتی در حافظه دستگاه.');
+    if (files.length === 0) return;
+
+    const addedTracks: CustomNightTrack[] = [];
+    for (const file of files) {
+      const id = generateLocalId('trk');
+      try {
+        await saveCustomAudioFile(`night_custom_${id}`, file);
+        addedTracks.push({
+          id,
+          name: file.name.replace(/\.[^/.]+$/, '') || file.name,
+        });
+      } catch {
+        // ignore single failure
+      }
     }
+
+    if (addedTracks.length === 0) {
+      setAudioStatusMsg('خطا در ذخیره فایل صوتی در حافظه دستگاه.');
+      return;
+    }
+
+    const nextTracks = [...(preferences.customNightTracks ?? []), ...addedTracks];
+    const nextTrackId: NightTrackId = `custom:${addedTracks[0].id}`;
+    update({
+      customNightTracks: nextTracks,
+      nightTrackId: nextTrackId,
+    });
+    setAudioStatusMsg(
+      addedTracks.length === 1
+        ? `آهنگ «${addedTracks[0].name}» به فهرست آهنگ‌های دلخواه اضافه شد.`
+        : `${toPersianDigits(addedTracks.length)} آهنگ دلخواه به فهرست اضافه شد.`
+    );
   };
 
   const handleUploadAlarmAudio = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,12 +136,34 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
     }
   };
 
-  const handleClearCustomNight = async () => {
-    nightAmbient.stop();
-    setPreviewingNight(false);
+  const handleDeleteCustomNightTrack = async (trackId: string) => {
+    const targetFullId: NightTrackId = `custom:${trackId}`;
+    if (previewingNight && nightAmbient.getTrackId() === targetFullId) {
+      nightAmbient.stop();
+      setPreviewingNight(false);
+    }
+    await deleteCustomAudioFile(`night_custom_${trackId}`);
+    const nextTracks = (preferences.customNightTracks ?? []).filter((t) => t.id !== trackId);
+    const nextSelected: NightTrackId =
+      preferences.nightTrackId === targetFullId
+        ? nextTracks.length > 0
+          ? `custom:${nextTracks[0].id}`
+          : 'wind-night'
+        : preferences.nightTrackId;
+    update({
+      customNightTracks: nextTracks,
+      nightTrackId: nextSelected,
+    });
+  };
+
+  const handleClearLegacyCustomNight = async () => {
+    if (previewingNight && nightAmbient.getTrackId() === 'custom') {
+      nightAmbient.stop();
+      setPreviewingNight(false);
+    }
     await deleteCustomAudioFile('night_music');
     update({
-      nightTrackId: 'rain-drone',
+      nightTrackId: preferences.nightTrackId === 'custom' ? 'wind-night' : preferences.nightTrackId,
       nightCustomTrackName: '',
     });
   };
@@ -236,8 +281,6 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                     const selected = preferences.nightTrackId === track.id;
                     const isPlayingThis =
                       previewingNight && nightAmbient.getTrackId() === track.id;
-                    const isCustomEmpty =
-                      track.id === 'custom' && !preferences.nightCustomTrackName;
 
                     return (
                       <div
@@ -267,56 +310,169 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                               {track.label}
                             </div>
                             <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                              {track.id === 'custom' && preferences.nightCustomTrackName
-                                ? `فایل انتخابی: ${preferences.nightCustomTrackName}`
-                                : track.subtitle}
+                              {track.subtitle}
                             </div>
                           </div>
                         </button>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {track.id === 'custom' && (
-                            <label className="min-h-[38px] px-2.5 rounded-xl border border-amber-500/35 bg-amber-500/12 hover:bg-amber-500/20 text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1 cursor-pointer">
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>انتخاب فایل</span>
-                              <input
-                                type="file"
-                                accept="audio/*"
-                                onChange={handleUploadNightAudio}
-                                className="hidden"
-                              />
-                            </label>
-                          )}
-
-                          {track.id === 'custom' && preferences.nightCustomTrackName && (
-                            <button
-                              type="button"
-                              onClick={handleClearCustomNight}
-                              className="min-h-[38px] min-w-[38px] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:text-red-500 flex items-center justify-center text-slate-500 dark:text-slate-400 cursor-pointer"
-                              title="حذف آهنگ دلخواه"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-
-                          {!isCustomEmpty && (
-                            <button
-                              type="button"
-                              onClick={() => void handlePreviewNightTrack(track.id)}
-                              className="min-h-[38px] min-w-[38px] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center text-blue-600 dark:text-blue-300 cursor-pointer"
-                              title={isPlayingThis ? 'توقف پیش‌نمایش' : 'پخش پیش‌نمایش'}
-                            >
-                              {isPlayingThis ? (
-                                <Pause className="w-4 h-4" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => void handlePreviewNightTrack(track.id)}
+                            className="min-h-[38px] min-w-[38px] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center text-blue-600 dark:text-blue-300 cursor-pointer"
+                            title={isPlayingThis ? 'توقف پیش‌نمایش' : 'پخش پیش‌نمایش'}
+                          >
+                            {isPlayingThis ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Custom User Night Tracks */}
+                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/8 p-3.5 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                      آهنگ‌های دلخواه من (فایل‌های گوشی)
+                    </span>
+                    <label className="min-h-[38px] px-3 rounded-xl border border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25 text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5 cursor-pointer">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>افزودن آهنگ دلخواه</span>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        multiple
+                        onChange={(e) => void handleUploadNightAudio(e)}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {!preferences.nightCustomTrackName &&
+                  (preferences.customNightTracks ?? []).length === 0 ? (
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      می‌توانید چند فایل صوتی دلخواه از گوشی اضافه کنید تا در ابزار تایمر و صدا قابل انتخاب باشند.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {preferences.nightCustomTrackName && (
+                        <div
+                          className={`rounded-xl border p-2.5 flex items-center justify-between gap-2 ${
+                            preferences.nightTrackId === 'custom'
+                              ? 'border-blue-500/50 bg-blue-500/10'
+                              : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#090B10]'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => update({ nightTrackId: 'custom' })}
+                            className="flex-1 flex items-center gap-2.5 text-right min-w-0 cursor-pointer"
+                          >
+                            <div
+                              className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                preferences.nightTrackId === 'custom'
+                                  ? 'border-blue-500 bg-blue-500 text-white dark:text-slate-950'
+                                  : 'border-slate-400 dark:border-slate-600'
+                              }`}
+                            >
+                              {preferences.nightTrackId === 'custom' && (
+                                <Check className="w-3 h-3" strokeWidth={3} />
+                              )}
+                            </div>
+                            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                              {preferences.nightCustomTrackName}
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => void handlePreviewNightTrack('custom')}
+                              className="min-h-[34px] min-w-[34px] rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] flex items-center justify-center text-blue-600 dark:text-blue-300 cursor-pointer"
+                              title="پخش پیش‌نمایش"
+                            >
+                              {previewingNight && nightAmbient.getTrackId() === 'custom' ? (
+                                <Pause className="w-3.5 h-3.5" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleClearLegacyCustomNight()}
+                              className="min-h-[34px] min-w-[34px] rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 flex items-center justify-center cursor-pointer"
+                              title="حذف آهنگ"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {(preferences.customNightTracks ?? []).map((trk) => {
+                        const fullId: NightTrackId = `custom:${trk.id}`;
+                        const selected = preferences.nightTrackId === fullId;
+                        const isPlayingThis =
+                          previewingNight && nightAmbient.getTrackId() === fullId;
+
+                        return (
+                          <div
+                            key={trk.id}
+                            className={`rounded-xl border p-2.5 flex items-center justify-between gap-2 ${
+                              selected
+                                ? 'border-blue-500/50 bg-blue-500/10'
+                                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#090B10]'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => update({ nightTrackId: fullId })}
+                              className="flex-1 flex items-center gap-2.5 text-right min-w-0 cursor-pointer"
+                            >
+                              <div
+                                className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                  selected
+                                    ? 'border-blue-500 bg-blue-500 text-white dark:text-slate-950'
+                                    : 'border-slate-400 dark:border-slate-600'
+                                }`}
+                              >
+                                {selected && <Check className="w-3 h-3" strokeWidth={3} />}
+                              </div>
+                              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                                {trk.name}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => void handlePreviewNightTrack(fullId)}
+                                className="min-h-[34px] min-w-[34px] rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] flex items-center justify-center text-blue-600 dark:text-blue-300 cursor-pointer"
+                                title={isPlayingThis ? 'توقف پیش‌نمایش' : 'پخش پیش‌نمایش'}
+                              >
+                                {isPlayingThis ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Play className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteCustomNightTrack(trk.id)}
+                                className="min-h-[34px] min-w-[34px] rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 flex items-center justify-center cursor-pointer"
+                                title="حذف آهنگ دلخواه"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-3.5 space-y-1.5">

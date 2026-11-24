@@ -154,16 +154,12 @@ export const HomeBackdropArt: React.FC<HomeBackdropArtProps> = ({
       }`}
     >
       <img
-        src="/assets/aistudio/image_8679b281.png"
+        src="/assets/aistudio/image84_3003da6f.png"
         alt="لوگوی دیالوگ"
         referrerPolicy="no-referrer"
         className={`${
           compact ? 'max-h-14' : 'max-h-56 sm:max-h-72'
-        } w-auto object-contain transition-opacity ${
-          isDark
-            ? 'opacity-20 [mask-image:radial-gradient(closest-side,black_58%,transparent_100%)]'
-            : 'mix-blend-multiply opacity-20'
-        }`}
+        } w-auto object-contain transition-opacity opacity-20`}
       />
     </div>
   );

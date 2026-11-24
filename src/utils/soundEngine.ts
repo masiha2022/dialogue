@@ -1,19 +1,48 @@
-import { AlarmSoundId, NightTrackId, RevealSoundId } from '../types/game';
-import { getCustomAudioUrl } from './audioStorage';
+import { AlarmSoundId, BuiltInNightTrackId, NightTrackId, RevealSoundId } from '../types/game';
+import { CustomAudioSlot, getCustomAudioUrl } from './audioStorage';
 
 /**
  * 100% Offline Web Audio API + Custom IndexedDB Audio Engine
- * Supports 5 selectable Night Cover tracks + custom user audio,
+ * Supports 7 high-density whisper-masking Night Cover tracks + unlimited custom user audio tracks,
  * 5 selectable Timer Alarms + custom user alarm, and 4 Role Reveal SFX.
  */
 
-export const NIGHT_TRACK_OPTIONS: { id: NightTrackId; label: string; subtitle: string }[] = [
-  { id: 'rain-drone', label: 'باران و نوای مرموز', subtitle: 'صدای ملایم باران برای پوشاندن پچ‌پچ' },
-  { id: 'heartbeat', label: 'ضربان قلب و تعلیق', subtitle: 'ریتم نبض آرام و فضای هیجانی شب' },
-  { id: 'cello-noir', label: 'آکورد تاریک سینمایی', subtitle: 'هارمونی عمیق و آرامش‌بخش شبانه' },
-  { id: 'wind-night', label: 'نسیم شب و سکوت', subtitle: 'طیف صدای باد شب برای محرمانگی کامل' },
-  { id: 'tick-clock', label: 'تیک‌تاک ساعت شب', subtitle: 'تیک‌تاک نرم به همراه زمینه کم‌نور' },
-  { id: 'custom', label: 'آهنگ دلخواه من (فایل گوشی)', subtitle: 'پخش فایل صوتی انتخاب‌شده از حافظه' },
+export const NIGHT_TRACK_OPTIONS: { id: BuiltInNightTrackId; label: string; subtitle: string }[] = [
+  {
+    id: 'wind-night',
+    label: 'نویز ضد نجوا (طیف گفتار)',
+    subtitle: 'پوشش متراکم فرکانس‌های پچ‌پچ و نفس بدون لحظه سکوت',
+  },
+  {
+    id: 'crowd-murmur',
+    label: 'همهمه شلوغ کافه و محیط',
+    subtitle: 'شبیه‌سازی صدای همهمه جمع برای محو کردن صدای مافیا',
+  },
+  {
+    id: 'techno-pulse',
+    label: 'ریتم الکترونیک تند (ضد سکوت)',
+    subtitle: 'بیت سریع ۱۳۶BPM همراه با باس کوبنده و نویز پیوسته',
+  },
+  {
+    id: 'heartbeat',
+    label: 'باس کوبنده و ضرباهنگ پرانرژی',
+    subtitle: 'کوبش سنگین و پرشتاب همراه با لایه نویز متراکم',
+  },
+  {
+    id: 'rain-drone',
+    label: 'طوفان شدید و بارش سنگین',
+    subtitle: 'باران پرقدرت و رگبار پیوسته برای پوشش کامل اتاق',
+  },
+  {
+    id: 'tick-clock',
+    label: 'ضرب‌آهنگ صنعتی و متراکم',
+    subtitle: 'کوبش‌های پی‌درپی مکانیکی و نویز میان‌رده ضد نجوا',
+  },
+  {
+    id: 'cello-noir',
+    label: 'تنش تاریک و ساینده سینمایی',
+    subtitle: 'سینت پرفشار و نویز فیلترشده پرانرژی (غیرآرامش‌بخش)',
+  },
 ];
 
 export const ALARM_SOUND_OPTIONS: { id: AlarmSoundId; label: string }[] = [
@@ -230,8 +259,8 @@ class NightAmbientEngine {
   private customAudioEl: HTMLAudioElement | null = null;
   private customObjectUrl: string | null = null;
   private active = false;
-  private volume = 0.45;
-  private currentTrackId: NightTrackId = 'rain-drone';
+  private volume = 0.65;
+  private currentTrackId: NightTrackId = 'wind-night';
 
   public isRunning(): boolean {
     return this.active;
@@ -247,8 +276,16 @@ class NightAmbientEngine {
       this.customAudioEl.volume = this.volume;
     }
     if (this.ctx && this.masterGain && this.active) {
-      this.masterGain.gain.setTargetAtTime(this.volume * 0.3, this.ctx.currentTime, 0.08);
+      this.masterGain.gain.setTargetAtTime(this.volume * 0.65, this.ctx.currentTime, 0.08);
     }
+  }
+
+  private resolveCustomSlot(trackId: NightTrackId): CustomAudioSlot | null {
+    if (trackId === 'custom') return 'night_music';
+    if (trackId.startsWith('custom:')) {
+      return `night_custom_${trackId.slice('custom:'.length)}`;
+    }
+    return null;
   }
 
   public async start(initialVolume?: number, trackId?: NightTrackId): Promise<boolean> {
@@ -263,8 +300,9 @@ class NightAmbientEngine {
     }
     if (this.active) return true;
 
-    if (this.currentTrackId === 'custom') {
-      const url = await getCustomAudioUrl('night_music');
+    const customSlot = this.resolveCustomSlot(this.currentTrackId);
+    if (customSlot) {
+      const url = await getCustomAudioUrl(customSlot);
       if (url) {
         try {
           const audio = new Audio(url);
@@ -277,7 +315,7 @@ class NightAmbientEngine {
           return true;
         } catch {
           URL.revokeObjectURL(url);
-          // Fallback cleanly to rain-drone if playback fails
+          // Fallback cleanly to built-in speech-masking track if playback fails
         }
       }
     }
@@ -289,53 +327,116 @@ class NightAmbientEngine {
       const ctx = new AudioCtx();
       this.ctx = ctx;
 
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-18, ctx.currentTime);
+      compressor.knee.setValueAtTime(12, ctx.currentTime);
+      compressor.ratio.setValueAtTime(6, ctx.currentTime);
+      compressor.attack.setValueAtTime(0.005, ctx.currentTime);
+      compressor.release.setValueAtTime(0.12, ctx.currentTime);
+
       const master = ctx.createGain();
       master.gain.setValueAtTime(0.001, ctx.currentTime);
       master.gain.exponentialRampToValueAtTime(
-        Math.max(0.01, this.volume * 0.3),
-        ctx.currentTime + 0.65
+        Math.max(0.02, this.volume * 0.65),
+        ctx.currentTime + 0.35
       );
+      compressor.connect(master);
       master.connect(ctx.destination);
       this.masterGain = master;
 
-      const style = this.currentTrackId === 'custom' ? 'rain-drone' : this.currentTrackId;
+      const style: BuiltInNightTrackId = customSlot
+        ? 'wind-night'
+        : (this.currentTrackId as BuiltInNightTrackId);
 
-      // Filtered noise bed for whisper-masking across tracks
-      const bufferSize = ctx.sampleRate * 3;
+      // Dense Pink + Speech-Band Noise Buffer (4 seconds seamless loop)
+      const bufferSize = ctx.sampleRate * 4;
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
-      let lastOut = 0;
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
       for (let i = 0; i < bufferSize; i++) {
         const white = Math.random() * 2 - 1;
-        output[i] = (lastOut + 0.028 * white) / 1.028;
-        lastOut = output[i];
-        output[i] *= 2.8;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.969 * b2 + white * 0.153852;
+        b3 = 0.8665 * b3 + white * 0.3104856;
+        b4 = 0.55 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.016898;
+        const pink = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+        output[i] = Math.max(-1, Math.min(1, pink * 1.45));
       }
 
+      // Layer 1: Broadband Speech-Masking Bed (buries whisper frequencies 350Hz - 3800Hz)
       const noise = ctx.createBufferSource();
       noise.buffer = noiseBuffer;
       noise.loop = true;
 
-      const noiseFilter = ctx.createBiquadFilter();
-      noiseFilter.type = style === 'wind-night' ? 'bandpass' : 'lowpass';
-      noiseFilter.frequency.setValueAtTime(
-        style === 'wind-night' ? 420 : style === 'rain-drone' ? 520 : 280,
+      const speechBandFilter = ctx.createBiquadFilter();
+      speechBandFilter.type = 'bandpass';
+      speechBandFilter.frequency.setValueAtTime(
+        style === 'wind-night'
+          ? 1250
+          : style === 'crowd-murmur'
+          ? 980
+          : style === 'rain-drone'
+          ? 1650
+          : 1100,
+        ctx.currentTime
+      );
+      speechBandFilter.Q.setValueAtTime(
+        style === 'wind-night' ? 0.55 : style === 'crowd-murmur' ? 0.8 : 0.65,
         ctx.currentTime
       );
 
       const noiseGain = ctx.createGain();
       noiseGain.gain.setValueAtTime(
-        style === 'wind-night' ? 0.58 : style === 'rain-drone' ? 0.5 : 0.3,
+        style === 'wind-night'
+          ? 0.92
+          : style === 'rain-drone'
+          ? 0.88
+          : style === 'crowd-murmur'
+          ? 0.82
+          : 0.45,
         ctx.currentTime
       );
 
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(master);
+      noise.connect(speechBandFilter);
+      speechBandFilter.connect(noiseGain);
+      noiseGain.connect(compressor);
       noise.start();
       this.noiseNode = noise;
 
-      const addDroneOsc = (freq: number, type: OscillatorType, gainAmt: number, cutoff = 260) => {
+      // Layer 2: Low-mid rumble / sub density (masks footsteps, chair creaks & cloth rustling)
+      const rumbleNoise = ctx.createBufferSource();
+      rumbleNoise.buffer = noiseBuffer;
+      rumbleNoise.loop = true;
+      const rumbleFilter = ctx.createBiquadFilter();
+      rumbleFilter.type = 'lowpass';
+      rumbleFilter.frequency.setValueAtTime(340, ctx.currentTime);
+      const rumbleGain = ctx.createGain();
+      rumbleGain.gain.setValueAtTime(0.55, ctx.currentTime);
+      rumbleNoise.connect(rumbleFilter);
+      rumbleFilter.connect(rumbleGain);
+      rumbleGain.connect(compressor);
+      rumbleNoise.start(0, 1.3);
+      // Store cleanup via stop() by tracking extra source on oscList-like wrapper? AudioBufferSourceNode also has .stop()
+      this.oscList.push(rumbleNoise as unknown as OscillatorNode);
+
+      // LFO modulation on speech-band filter so it sounds dynamic and masks shifting whisper tones
+      const filterLfo = ctx.createOscillator();
+      filterLfo.type = 'triangle';
+      filterLfo.frequency.setValueAtTime(
+        style === 'crowd-murmur' ? 2.8 : style === 'wind-night' ? 0.75 : 1.4,
+        ctx.currentTime
+      );
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.setValueAtTime(style === 'crowd-murmur' ? 420 : 280, ctx.currentTime);
+      filterLfo.connect(lfoGain);
+      lfoGain.connect(speechBandFilter.frequency);
+      filterLfo.start();
+      this.oscList.push(filterLfo);
+
+      const addSynthLayer = (freq: number, type: OscillatorType, gainAmt: number, cutoff = 900) => {
         const osc = ctx.createOscillator();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, ctx.currentTime);
@@ -349,86 +450,214 @@ class NightAmbientEngine {
 
         osc.connect(filter);
         filter.connect(g);
-        g.connect(master);
+        g.connect(compressor);
         osc.start();
         this.oscList.push(osc);
       };
 
       if (style === 'cello-noir') {
-        addDroneOsc(65.41, 'sawtooth', 0.16, 200); // C2
-        addDroneOsc(98.0, 'triangle', 0.22, 240); // G2
-        addDroneOsc(155.56, 'sine', 0.14, 300); // Eb3
-      } else if (style === 'wind-night') {
-        addDroneOsc(55.0, 'sine', 0.22, 180);
-      } else {
-        addDroneOsc(73.42, 'sine', 0.24, 220); // D2
-        addDroneOsc(110.0, 'triangle', 0.18, 220); // A2
+        // Gritty detuned tension synth (non-relaxing)
+        addSynthLayer(65.41, 'sawtooth', 0.24, 620);
+        addSynthLayer(66.15, 'sawtooth', 0.22, 680);
+        addSynthLayer(98.0, 'square', 0.14, 780);
+        addSynthLayer(155.56, 'sawtooth', 0.12, 1100);
+      } else if (style === 'techno-pulse' || style === 'heartbeat') {
+        addSynthLayer(55.0, 'sawtooth', 0.22, 420);
+        addSynthLayer(110.0, 'square', 0.12, 720);
+      } else if (style === 'tick-clock') {
+        addSynthLayer(82.41, 'sawtooth', 0.16, 480);
+      } else if (style === 'crowd-murmur') {
+        addSynthLayer(130.81, 'sawtooth', 0.08, 380);
       }
 
       this.active = true;
 
       if (style === 'heartbeat') {
-        const triggerHeartbeat = () => {
+        // Driving 130 BPM punchy kick + crisp off-beat snare/hat burst (NO quiet gaps)
+        let step = 0;
+        const triggerBeat = () => {
           if (!this.ctx || !this.masterGain || !this.active) return;
           const t = this.ctx.currentTime;
-          const beat = (delay: number, peak: number) => {
-            if (!this.ctx || !this.masterGain) return;
+          const isKick = step % 2 === 0;
+          step++;
+
+          if (isKick) {
             const o = this.ctx.createOscillator();
             const g = this.ctx.createGain();
             o.type = 'sine';
-            o.frequency.setValueAtTime(64, t + delay);
-            o.frequency.exponentialRampToValueAtTime(34, t + delay + 0.18);
-            g.gain.setValueAtTime(0.001, t + delay);
-            g.gain.exponentialRampToValueAtTime(peak, t + delay + 0.025);
-            g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.22);
+            o.frequency.setValueAtTime(125, t);
+            o.frequency.exponentialRampToValueAtTime(42, t + 0.16);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.exponentialRampToValueAtTime(0.65, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.21);
             o.connect(g);
-            g.connect(this.masterGain);
-            o.start(t + delay);
-            o.stop(t + delay + 0.24);
-          };
-          beat(0, 0.42);
-          beat(0.24, 0.26);
+            g.connect(compressor);
+            o.start(t);
+            o.stop(t + 0.23);
+          } else {
+            // Sharp mid-high percussion hit to mask whispers on off-beats
+            const hat = this.ctx.createBufferSource();
+            hat.buffer = noiseBuffer;
+            const hp = this.ctx.createBiquadFilter();
+            hp.type = 'bandpass';
+            hp.frequency.setValueAtTime(2400, t);
+            const hg = this.ctx.createGain();
+            hg.gain.setValueAtTime(0.45, t);
+            hg.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+            hat.connect(hp);
+            hp.connect(hg);
+            hg.connect(compressor);
+            hat.start(t, Math.random() * 2);
+            hat.stop(t + 0.12);
+          }
         };
-        triggerHeartbeat();
-        this.pulseInterval = window.setInterval(triggerHeartbeat, 1300);
+        triggerBeat();
+        this.pulseInterval = window.setInterval(triggerBeat, 230);
+      } else if (style === 'techno-pulse') {
+        // Fast 136 BPM energetic bassline arpeggio + snare/hat groove
+        const bassNotes = [55.0, 55.0, 65.41, 73.42, 55.0, 82.41, 65.41, 49.0];
+        let step = 0;
+        const triggerStep = () => {
+          if (!this.ctx || !this.masterGain || !this.active) return;
+          const t = this.ctx.currentTime;
+          const note = bassNotes[step % bassNotes.length];
+          const isKick = step % 2 === 0;
+          const isSnare = step % 4 === 2;
+          step++;
+
+          // Driving sawtooth bass step
+          const osc = this.ctx.createOscillator();
+          const filter = this.ctx.createBiquadFilter();
+          const g = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(note * 2, t);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(950, t);
+          filter.frequency.exponentialRampToValueAtTime(260, t + 0.18);
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.exponentialRampToValueAtTime(0.32, t + 0.01);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.19);
+          osc.connect(filter);
+          filter.connect(g);
+          g.connect(compressor);
+          osc.start(t);
+          osc.stop(t + 0.2);
+
+          if (isKick) {
+            const k = this.ctx.createOscillator();
+            const kg = this.ctx.createGain();
+            k.type = 'sine';
+            k.frequency.setValueAtTime(135, t);
+            k.frequency.exponentialRampToValueAtTime(44, t + 0.14);
+            kg.gain.setValueAtTime(0.55, t);
+            kg.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+            k.connect(kg);
+            kg.connect(compressor);
+            k.start(t);
+            k.stop(t + 0.17);
+          }
+
+          if (isSnare) {
+            const sn = this.ctx.createBufferSource();
+            sn.buffer = noiseBuffer;
+            const bp = this.ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.frequency.setValueAtTime(1800, t);
+            const sg = this.ctx.createGain();
+            sg.gain.setValueAtTime(0.5, t);
+            sg.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+            sn.connect(bp);
+            bp.connect(sg);
+            sg.connect(compressor);
+            sn.start(t, Math.random() * 2);
+            sn.stop(t + 0.15);
+          }
+        };
+        triggerStep();
+        this.pulseInterval = window.setInterval(triggerStep, 220);
       } else if (style === 'tick-clock') {
-        let isOdd = false;
-        const triggerTick = () => {
+        // Fast industrial rhythmic percussion every 240ms
+        let step = 0;
+        const triggerIndustrial = () => {
           if (!this.ctx || !this.masterGain || !this.active) return;
           const t = this.ctx.currentTime;
+          const accent = step % 4 === 0;
+          step++;
+
           const o = this.ctx.createOscillator();
           const g = this.ctx.createGain();
-          o.type = 'triangle';
-          o.frequency.setValueAtTime(isOdd ? 680 : 880, t);
-          isOdd = !isOdd;
+          o.type = 'square';
+          o.frequency.setValueAtTime(accent ? 520 : 780, t);
+          o.frequency.exponentialRampToValueAtTime(180, t + 0.08);
           g.gain.setValueAtTime(0.001, t);
-          g.gain.exponentialRampToValueAtTime(0.2, t + 0.006);
-          g.gain.exponentialRampToValueAtTime(0.0008, t + 0.06);
+          g.gain.exponentialRampToValueAtTime(accent ? 0.28 : 0.16, t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
           o.connect(g);
-          g.connect(this.masterGain);
+          g.connect(compressor);
           o.start(t);
-          o.stop(t + 0.07);
+          o.stop(t + 0.1);
+
+          const burst = this.ctx.createBufferSource();
+          burst.buffer = noiseBuffer;
+          const bp = this.ctx.createBiquadFilter();
+          bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(accent ? 1600 : 2800, t);
+          const bg = this.ctx.createGain();
+          bg.gain.setValueAtTime(accent ? 0.42 : 0.26, t);
+          bg.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          burst.connect(bp);
+          bp.connect(bg);
+          bg.connect(compressor);
+          burst.start(t, Math.random() * 2);
+          burst.stop(t + 0.11);
         };
-        triggerTick();
-        this.pulseInterval = window.setInterval(triggerTick, 1000);
+        triggerIndustrial();
+        this.pulseInterval = window.setInterval(triggerIndustrial, 240);
+      } else if (style === 'crowd-murmur') {
+        // Overlapping synthetic speech-formant chatter bursts to bury real whispers
+        const triggerChatter = () => {
+          if (!this.ctx || !this.masterGain || !this.active) return;
+          const t = this.ctx.currentTime;
+          const src = this.ctx.createBufferSource();
+          src.buffer = noiseBuffer;
+          const formant = this.ctx.createBiquadFilter();
+          formant.type = 'bandpass';
+          formant.frequency.setValueAtTime(480 + Math.random() * 1700, t);
+          formant.Q.setValueAtTime(2.2, t);
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.45, t + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+          src.connect(formant);
+          formant.connect(g);
+          g.connect(compressor);
+          src.start(t, Math.random() * 2);
+          src.stop(t + 0.45);
+        };
+        triggerChatter();
+        this.pulseInterval = window.setInterval(triggerChatter, 190);
       } else if (style === 'rain-drone') {
-        const triggerDrop = () => {
+        // Heavy continuous storm surges + thunder rumbles
+        const triggerSurge = () => {
           if (!this.ctx || !this.masterGain || !this.active) return;
           const t = this.ctx.currentTime;
-          const o = this.ctx.createOscillator();
+          const surge = this.ctx.createBufferSource();
+          surge.buffer = noiseBuffer;
+          const bp = this.ctx.createBiquadFilter();
+          bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(600 + Math.random() * 1800, t);
           const g = this.ctx.createGain();
-          o.type = 'sine';
-          o.frequency.setValueAtTime(420 + Math.random() * 280, t);
-          o.frequency.exponentialRampToValueAtTime(220, t + 0.14);
           g.gain.setValueAtTime(0.001, t);
-          g.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-          o.connect(g);
-          g.connect(this.masterGain);
-          o.start(t);
-          o.stop(t + 0.18);
+          g.gain.linearRampToValueAtTime(0.38, t + 0.25);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+          surge.connect(bp);
+          bp.connect(g);
+          g.connect(compressor);
+          surge.start(t, Math.random() * 2);
+          surge.stop(t + 0.95);
         };
-        this.pulseInterval = window.setInterval(triggerDrop, 1600);
+        triggerSurge();
+        this.pulseInterval = window.setInterval(triggerSurge, 550);
       }
 
       return true;

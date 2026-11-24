@@ -94,24 +94,6 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
       </header>
 
       <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7 flex-1">
-        <section className="mb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white text-balance">
-            انتخاب سناریو برای شروع بازی
-          </h2>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('tap', hapticEnabled);
-              onRestoreLibrary();
-            }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-[#C4161C] dark:hover:text-amber-300 transition-colors min-h-[40px] cursor-pointer self-start sm:self-auto"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>بازیابی کتابخانه استاندارد</span>
-          </button>
-        </section>
-
         {scenarios.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/15 bg-white dark:bg-[#121620] p-10 text-center max-w-lg mx-auto my-8">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">

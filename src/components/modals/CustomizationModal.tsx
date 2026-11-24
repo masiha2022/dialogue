@@ -2,16 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   Bell,
   Check,
-  Eye,
   Image as ImageIcon,
-  Moon,
   Music,
   Pause,
   Play,
   Plus,
   RotateCcw,
   SlidersHorizontal,
-  Sun,
   Timer,
   Trash2,
   Upload,
@@ -24,7 +21,6 @@ import {
   CustomNightTrack,
   HomeBackdropId,
   NightTrackId,
-  RevealSoundId,
 } from '../../types/game';
 import { deleteCustomAudioFile, saveCustomAudioFile } from '../../utils/audioStorage';
 import { compressImageFileToDataUrl, HOME_BACKDROP_OPTIONS } from '../../utils/backdrop';
@@ -32,10 +28,7 @@ import { triggerHaptic } from '../../utils/haptics';
 import { generateLocalId, toPersianDigits } from '../../utils/persian';
 import {
   ALARM_SOUND_OPTIONS,
-  NIGHT_TRACK_OPTIONS,
-  REVEAL_SOUND_OPTIONS,
   nightAmbient,
-  playRevealCue,
   playTimerEndAlarm,
 } from '../../utils/soundEngine';
 import { DEFAULT_APP_PREFERENCES } from '../../utils/storage';
@@ -47,14 +40,11 @@ interface CustomizationModalProps {
   onClose: () => void;
 }
 
-type PrefsTabKey = 'audio' | 'timers' | 'backdrop' | 'display';
-
 export const CustomizationModal: React.FC<CustomizationModalProps> = ({
   preferences,
   onUpdatePreferences,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<PrefsTabKey>('audio');
   const [previewingNight, setPreviewingNight] = useState(false);
   const [newPresetSec, setNewPresetSec] = useState('120');
   const [audioStatusMsg, setAudioStatusMsg] = useState<string | null>(null);
@@ -148,7 +138,9 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
       preferences.nightTrackId === targetFullId
         ? nextTracks.length > 0
           ? `custom:${nextTracks[0].id}`
-          : 'wind-night'
+          : preferences.nightCustomTrackName
+          ? 'custom'
+          : 'custom'
         : preferences.nightTrackId;
     update({
       customNightTracks: nextTracks,
@@ -162,8 +154,14 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
       setPreviewingNight(false);
     }
     await deleteCustomAudioFile('night_music');
+    const customTracks = preferences.customNightTracks ?? [];
     update({
-      nightTrackId: preferences.nightTrackId === 'custom' ? 'wind-night' : preferences.nightTrackId,
+      nightTrackId:
+        preferences.nightTrackId === 'custom'
+          ? customTracks.length > 0
+            ? `custom:${customTracks[0].id}`
+            : 'custom'
+          : preferences.nightTrackId,
       nightCustomTrackName: '',
     });
   };
@@ -192,13 +190,6 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
     });
   };
 
-  const TABS: { key: PrefsTabKey; label: string; icon: React.ReactNode }[] = [
-    { key: 'audio', label: 'آهنگ و آلارم', icon: <Music className="w-4 h-4" /> },
-    { key: 'timers', label: 'تایمر و قوانین', icon: <Timer className="w-4 h-4" /> },
-    { key: 'backdrop', label: 'تصویر پس‌زمینه', icon: <ImageIcon className="w-4 h-4" /> },
-    { key: 'display', label: 'نمایش و امنیت', icon: <Eye className="w-4 h-4" /> },
-  ];
-
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 dark:bg-black/80 backdrop-blur-sm sm:p-4">
       <div className="w-full max-w-2xl max-h-[92dvh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-white/12 bg-white dark:bg-[#121620] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden">
@@ -207,7 +198,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
           <div className="flex items-center gap-2.5">
             <SlidersHorizontal className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
-              شخصی‌سازی و تنظیمات برنامه
+              تنظیمات
             </h2>
           </div>
 
@@ -222,31 +213,6 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Sub-Tabs */}
-        <div className="px-5 pt-3 pb-2 border-b border-slate-200 dark:border-white/6 shrink-0">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#090B10] border border-slate-200 dark:border-white/8">
-            {TABS.map((t) => {
-              const active = activeTab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('tap', preferences.hapticFeedbackEnabled);
-                    setActiveTab(t.key);
-                  }}
-                  className={`min-h-[42px] rounded-lg px-2 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                    active ? 'bg-amber-500 text-slate-950' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-white/5'
-                  }`}
-                >
-                  {t.icon}
-                  <span className="truncate">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* Body */}
@@ -264,99 +230,31 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
             </div>
           )}
 
-          {activeTab === 'audio' && (
-            <>
               {/* Night Cover Music Track Selection */}
               <section className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <Music className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span>انتخاب آهنگ پس‌زمینه شب</span>
+                    <span>آهنگ شب</span>
                   </h3>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">کاملاً آفلاین</span>
+                  <label className="min-h-[38px] px-3 rounded-xl border border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25 text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5 cursor-pointer">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>افزودن آهنگ</span>
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      multiple
+                      onChange={(e) => void handleUploadNightAudio(e)}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
-                <div className="space-y-2">
-                  {NIGHT_TRACK_OPTIONS.map((track) => {
-                    const selected = preferences.nightTrackId === track.id;
-                    const isPlayingThis =
-                      previewingNight && nightAmbient.getTrackId() === track.id;
-
-                    return (
-                      <div
-                        key={track.id}
-                        className={`rounded-2xl border p-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 transition-colors ${
-                          selected
-                            ? 'border-blue-500/50 bg-blue-500/10'
-                            : 'border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10]'
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => update({ nightTrackId: track.id })}
-                          className="flex-1 flex items-center gap-3 text-right min-w-0 cursor-pointer"
-                        >
-                          <div
-                            className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                              selected
-                                ? 'border-blue-500 bg-blue-500 text-white dark:text-slate-950'
-                                : 'border-slate-400 dark:border-slate-600'
-                            }`}
-                          >
-                            {selected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                              {track.label}
-                            </div>
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                              {track.subtitle}
-                            </div>
-                          </div>
-                        </button>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => void handlePreviewNightTrack(track.id)}
-                            className="min-h-[38px] min-w-[38px] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center text-blue-600 dark:text-blue-300 cursor-pointer"
-                            title={isPlayingThis ? 'توقف پیش‌نمایش' : 'پخش پیش‌نمایش'}
-                          >
-                            {isPlayingThis ? (
-                              <Pause className="w-4 h-4" />
-                            ) : (
-                              <Play className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Custom User Night Tracks */}
-                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 dark:bg-amber-500/8 p-3.5 space-y-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
-                      آهنگ‌های دلخواه من (فایل‌های گوشی)
-                    </span>
-                    <label className="min-h-[38px] px-3 rounded-xl border border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25 text-xs font-bold text-amber-800 dark:text-amber-200 flex items-center gap-1.5 cursor-pointer">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>افزودن آهنگ دلخواه</span>
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        multiple
-                        onChange={(e) => void handleUploadNightAudio(e)}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
+                <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-3.5 space-y-2.5">
                   {!preferences.nightCustomTrackName &&
                   (preferences.customNightTracks ?? []).length === 0 ? (
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                      می‌توانید چند فایل صوتی دلخواه از گوشی اضافه کنید تا در ابزار تایمر و صدا قابل انتخاب باشند.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-1">
+                      آهنگی اضافه نشده است
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -365,7 +263,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                           className={`rounded-xl border p-2.5 flex items-center justify-between gap-2 ${
                             preferences.nightTrackId === 'custom'
                               ? 'border-blue-500/50 bg-blue-500/10'
-                              : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#090B10]'
+                              : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620]'
                           }`}
                         >
                           <button
@@ -425,7 +323,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                             className={`rounded-xl border p-2.5 flex items-center justify-between gap-2 ${
                               selected
                                 ? 'border-blue-500/50 bg-blue-500/10'
-                                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#090B10]'
+                                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620]'
                             }`}
                           >
                             <button
@@ -463,7 +361,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                                 type="button"
                                 onClick={() => void handleDeleteCustomNightTrack(trk.id)}
                                 className="min-h-[34px] min-w-[34px] rounded-lg border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 flex items-center justify-center cursor-pointer"
-                                title="حذف آهنگ دلخواه"
+                                title="حذف آهنگ"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -477,7 +375,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
 
                 <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-3.5 space-y-1.5">
                   <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 tabular-nums">
-                    <span>بلندی پیش‌فرض آهنگ شب</span>
+                    <span>بلندی صدا</span>
                     <span>{toPersianDigits(Math.round(preferences.nightVolume * 100))}٪</span>
                   </div>
                   <input
@@ -500,7 +398,7 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
               <section className="space-y-3 pt-2 border-t border-slate-200 dark:border-white/8">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                   <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span>انتخاب صدای آلارم پایان تایمر</span>
+                  <span>زنگ تایمر</span>
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -579,39 +477,12 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                 </div>
               </section>
 
-              {/* Role Reveal SFX + Vibration + Countdown Tick */}
+              {/* Last Words Countdown */}
               <section className="space-y-3 pt-2 border-t border-slate-200 dark:border-white/8">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  صدای افشای نقش و هشدار ثانیه‌های آخر
-                </h3>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {REVEAL_SOUND_OPTIONS.map((opt) => {
-                    const selected = preferences.revealSoundId === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          update({ revealSoundId: opt.id as RevealSoundId });
-                          playRevealCue(opt.id as RevealSoundId);
-                        }}
-                        className={`min-h-[44px] rounded-xl border px-2.5 text-xs font-bold cursor-pointer transition-colors ${
-                          selected
-                            ? 'border-amber-500/55 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#090B10] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
                 <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-3.5 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      تیک‌تاک هشدار در ثانیه‌های پایانی تایمر
+                      مدت کلام آخر
                     </span>
                     <div className="grid grid-cols-4 sm:flex items-center gap-1.5">
                       {([0, 3, 5, 10] as const).map((sec) => (
@@ -630,186 +501,99 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                       ))}
                     </div>
                   </div>
-
-                  <label className="flex items-center justify-between gap-2 cursor-pointer pt-2 border-t border-slate-200 dark:border-white/6">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      بازخورد لرزشی (Haptic) هنگام لمس دکمه‌ها، تایمر و افشای نقش
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={preferences.hapticFeedbackEnabled}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        update({ hapticFeedbackEnabled: checked });
-                        if (checked) triggerHaptic('confirm', true);
-                      }}
-                      className="w-4 h-4 accent-amber-500"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between gap-2 cursor-pointer pt-2 border-t border-slate-200 dark:border-white/6">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      لرزش (ویبره) طولانی گوشی هنگام اتمام تایمر
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={preferences.vibrateOnTimerEnd}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        update({ vibrateOnTimerEnd: checked });
-                        if (checked) triggerHaptic('countdownTick', true);
-                      }}
-                      className="w-4 h-4 accent-amber-500"
-                    />
-                  </label>
                 </div>
               </section>
-            </>
-          )}
 
-          {activeTab === 'timers' && (
-            <>
-              <section className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  زمان پیش‌فرض تایمر و دکمه‌های میان‌بر
+              {/* Timers */}
+              <section className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/8">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>تایمر</span>
                 </h3>
-
-                <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      زمان پیش‌فرض تایمر صحبت
+                <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    زمان پیش‌فرض
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update({
+                          defaultSpeechSeconds: Math.max(10, preferences.defaultSpeechSeconds - 5),
+                        })
+                      }
+                      className="w-9 h-9 rounded-lg bg-white dark:bg-[#121620] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="w-16 text-center text-sm font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
+                      {toPersianDigits(preferences.defaultSpeechSeconds)} ثانیه
                     </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          update({
-                            defaultSpeechSeconds: Math.max(10, preferences.defaultSpeechSeconds - 5),
-                          })
-                        }
-                        className="w-9 h-9 rounded-lg bg-white dark:bg-[#121620] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <span className="w-16 text-center text-sm font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">
-                        {toPersianDigits(preferences.defaultSpeechSeconds)} ثانیه
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          update({
-                            defaultSpeechSeconds: Math.min(300, preferences.defaultSpeechSeconds + 5),
-                          })
-                        }
-                        className="w-9 h-9 rounded-lg bg-white dark:bg-[#121620] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200 dark:border-white/6 space-y-2">
-                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      دکمه‌های آماده تایمر در کنسول گرداننده:
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {preferences.customTimerPresets.map((sec) => (
-                        <div
-                          key={sec}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/12 bg-white dark:bg-[#121620] px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums"
-                        >
-                          <span>{toPersianDigits(sec)} ثانیه</span>
-                          {preferences.customTimerPresets.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveTimerPreset(sec)}
-                              className="text-slate-400 hover:text-red-500 cursor-pointer"
-                              aria-label="حذف میان‌بر"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min={5}
-                        max={600}
-                        value={newPresetSec}
-                        onChange={(e) => setNewPresetSec(e.target.value)}
-                        placeholder="مثلاً 120 ثانیه"
-                        className="w-36 min-h-[40px] rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] px-3 text-xs text-slate-900 dark:text-slate-100 tabular-nums focus:outline-none focus:border-amber-500/60"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddTimerPreset}
-                        className="min-h-[40px] px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>افزودن دکمه تایمر</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update({
+                          defaultSpeechSeconds: Math.min(300, preferences.defaultSpeechSeconds + 5),
+                        })
+                      }
+                      className="w-9 h-9 rounded-lg bg-white dark:bg-[#121620] border border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-200 font-bold cursor-pointer"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
-              </section>
 
-              <section className="space-y-3 pt-2 border-t border-slate-200 dark:border-white/8">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  سفارشی‌سازی قوانین محاسبه میز
-                </h3>
-
-                <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                  <div className="space-y-2">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 block">
-                      فرمول حدنصاب ورود به دادگاه دفاعیه:
-                    </span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => update({ defenseVoteFormula: 'half' })}
-                        className={`min-h-[42px] rounded-xl border px-3 text-xs font-bold cursor-pointer ${
-                          preferences.defenseVoteFormula === 'half'
-                            ? 'border-amber-500/55 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                            : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                        }`}
+                <div className="pt-3 border-t border-slate-200 dark:border-white/6 space-y-2.5">
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    زمان‌های آماده
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {preferences.customTimerPresets.map((sec) => (
+                      <div
+                        key={sec}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/12 bg-white dark:bg-[#121620] px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums"
                       >
-                        نصف افراد زنده (معمول)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => update({ defenseVoteFormula: 'half_plus_one' })}
-                        className={`min-h-[42px] rounded-xl border px-3 text-xs font-bold cursor-pointer ${
-                          preferences.defenseVoteFormula === 'half_plus_one'
-                            ? 'border-amber-500/55 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                            : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        نصف به‌علاوه یک رأی
-                      </button>
-                    </div>
+                        <span>{toPersianDigits(sec)} ثانیه</span>
+                        {preferences.customTimerPresets.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTimerPreset(sec)}
+                            className="text-slate-400 hover:text-red-500 cursor-pointer"
+                            aria-label="حذف"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
-                  <label className="flex items-center justify-between gap-2 cursor-pointer pt-2 border-t border-slate-200 dark:border-white/6">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-relaxed">
-                      در تیر خطای تک‌تیرانداز به شهروند، شهروند خارج نشود (جریمه خود اسنایپر)
-                    </span>
+                  <div className="flex items-center gap-2 pt-1">
                     <input
-                      type="checkbox"
-                      checked={preferences.sniperPenaltyOnCitizen}
-                      onChange={(e) => update({ sniperPenaltyOnCitizen: e.target.checked })}
-                      className="w-4 h-4 accent-amber-500 shrink-0"
+                      type="number"
+                      min={5}
+                      max={600}
+                      value={newPresetSec}
+                      onChange={(e) => setNewPresetSec(e.target.value)}
+                      placeholder="ثانیه"
+                      className="w-28 min-h-[40px] rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] px-3 text-xs text-slate-900 dark:text-slate-100 tabular-nums focus:outline-none focus:border-amber-500/60"
                     />
-                  </label>
+                    <button
+                      type="button"
+                      onClick={handleAddTimerPreset}
+                      className="min-h-[40px] px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>افزودن</span>
+                    </button>
+                  </div>
                 </div>
-              </section>
-            </>
-          )}
+              </div>
+            </section>
 
-          {activeTab === 'backdrop' && (
-            <section className="space-y-4">
+            {/* Backdrop */}
+            <section className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/8">
               <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -938,152 +722,6 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                 )}
               </div>
             </section>
-          )}
-
-          {activeTab === 'display' && (
-            <section className="space-y-4">
-              {/* Day / Night Theme Switcher */}
-              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  تم ظاهری برنامه (روز و شب):
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('tap', preferences.hapticFeedbackEnabled);
-                      update({ themeMode: 'light' });
-                    }}
-                    className={`min-h-[46px] rounded-xl border text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-                      preferences.themeMode === 'light'
-                        ? 'border-amber-500 bg-amber-500 text-slate-950'
-                        : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    <Sun className="w-4 h-4" />
-                    <span>تم روز (روشن)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('tap', preferences.hapticFeedbackEnabled);
-                      update({ themeMode: 'dark' });
-                    }}
-                    className={`min-h-[46px] rounded-xl border text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors ${
-                      preferences.themeMode === 'dark'
-                        ? 'border-amber-500 bg-amber-500 text-slate-950'
-                        : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    <Moon className="w-4 h-4" />
-                    <span>تم شب (تیره)</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  نحوه باز شدن کارت نقش هر بازیکن:
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => update({ revealMode: 'tap' })}
-                    className={`min-h-[44px] rounded-xl border text-xs font-bold cursor-pointer ${
-                      preferences.revealMode === 'tap'
-                        ? 'border-amber-500/55 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                        : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    لمس سریع (یک ضربه)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => update({ revealMode: 'hold' })}
-                    className={`min-h-[44px] rounded-xl border text-xs font-bold cursor-pointer ${
-                      preferences.revealMode === 'hold'
-                        ? 'border-amber-500/55 bg-amber-500/15 text-amber-800 dark:text-amber-300'
-                        : 'border-slate-300 dark:border-white/10 bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    حالت امن (نگه‌داشتن انگشت)
-                  </button>
-                </div>
-
-                {preferences.revealMode === 'hold' && (
-                  <div className="pt-2 border-t border-slate-200 dark:border-white/6 space-y-2">
-                    <span className="text-xs text-slate-600 dark:text-slate-300 block">
-                      مدت‌زمان نگه‌داشتن انگشت برای نمایش نقش:
-                    </span>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[400, 650, 1000, 1400].map((ms) => (
-                        <button
-                          key={ms}
-                          type="button"
-                          onClick={() => update({ holdRevealMs: ms })}
-                          className={`min-h-[38px] rounded-lg text-xs font-bold cursor-pointer tabular-nums ${
-                            preferences.holdRevealMs === ms
-                              ? 'bg-amber-500 text-slate-950'
-                              : 'bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-white/10'
-                          }`}
-                        >
-                          {toPersianDigits((ms / 1000).toFixed(1))} ث
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  مخفی‌سازی خودکار نقش (قفل امنیتی در صورت رها کردن گوشی):
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {([0, 5, 8, 12] as const).map((sec) => (
-                    <button
-                      key={sec}
-                      type="button"
-                      onClick={() => update({ autoHideAfterSeconds: sec })}
-                      className={`min-h-[40px] rounded-lg text-xs font-bold cursor-pointer tabular-nums ${
-                        preferences.autoHideAfterSeconds === sec
-                          ? 'bg-amber-500 text-slate-950'
-                          : 'bg-white dark:bg-[#121620] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-white/10'
-                      }`}
-                    >
-                      {sec === 0 ? 'خاموش' : `${toPersianDigits(sec)} ثانیه`}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3">
-                <label className="flex items-center justify-between gap-2 cursor-pointer">
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    نمایش برچسب تیم (شهروند / مافیا / مستقل) روی کارت افشای نقش
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={preferences.showRoleTeamBadgeOnReveal}
-                    onChange={(e) => update({ showRoleTeamBadgeOnReveal: e.target.checked })}
-                    className="w-4 h-4 accent-amber-500 shrink-0"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between gap-2 cursor-pointer pt-2 border-t border-slate-200 dark:border-white/6">
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    اندازه متن درشت‌تر در صفحه نمایش نقش (مناسب نور کم)
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={preferences.largeRevealFont}
-                    onChange={(e) => update({ largeRevealFont: e.target.checked })}
-                    className="w-4 h-4 accent-amber-500 shrink-0"
-                  />
-                </label>
-              </div>
-            </section>
-          )}
         </div>
 
         {/* Footer */}

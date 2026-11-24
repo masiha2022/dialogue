@@ -5,7 +5,7 @@ import { useWakeLock } from '../../hooks/useWakeLock';
 import { AppPreferences, AssignedPlayerRole, RevealMode } from '../../types/game';
 import { triggerHaptic } from '../../utils/haptics';
 import { getReadableRoleColor, getRoleTeamLabel, hexToRgba, inferRoleTeam, toPersianDigits } from '../../utils/persian';
-import { playRevealCue, unlockAudioContext } from '../../utils/soundEngine';
+import { unlockAudioContext } from '../../utils/soundEngine';
 import { RoleIcon } from '../RoleIcon';
 
 interface RoleRevealScreenProps {
@@ -136,7 +136,6 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
   const triggerReveal = () => {
     if (isRevealed || isLockedTransition) return;
     unlockAudioContext();
-    playRevealCue(preferences.revealSoundId);
     triggerHaptic('roleReveal', preferences.hapticFeedbackEnabled);
     setHoldRevealProgress(0);
     setIsRevealed(true);
@@ -188,7 +187,7 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
   const teamLabel = getRoleTeamLabel(inferRoleTeam(role));
 
   return (
-    <div className="min-h-dvh flex flex-col justify-between bg-[#F4F5F7] dark:bg-[#090B10] px-4 py-5 sm:px-6 sm:py-8 select-none transition-colors">
+    <div className="min-h-dvh flex flex-col bg-[#F4F5F7] dark:bg-[#090B10] px-4 py-5 pb-safe sm:px-6 sm:py-8 select-none transition-colors">
       {/* Top quiet header */}
       <header className="w-full max-w-xl mx-auto flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 tabular-nums min-w-0">
@@ -222,7 +221,7 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
       </header>
 
       {/* Main Focal Stage */}
-      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center py-6">
+      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center gap-3.5 sm:gap-4 py-4">
         <AnimatePresence mode="wait">
           {!isRevealed ? (
             <motion.button
@@ -238,7 +237,7 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.94 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative overflow-hidden group w-full min-h-[380px] sm:min-h-[430px] rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111520] p-8 flex flex-col items-center justify-center text-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 shadow-sm dark:shadow-none"
+              className="relative overflow-hidden group w-full min-h-[360px] sm:min-h-[410px] rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111520] p-7 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 shadow-sm dark:shadow-none"
             >
               {revealMode === 'hold' && holdRevealProgress > 0 && (
                 <div
@@ -248,7 +247,21 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                 />
               )}
 
-              <div className="relative mb-6 flex items-center justify-center">
+              <div className="relative z-10 text-sm font-bold text-amber-700 dark:text-amber-300 mb-2 tabular-nums">
+                نوبت «{displayName}»
+              </div>
+
+              <h1
+                className={`relative z-10 font-extrabold text-slate-900 dark:text-slate-100 leading-snug text-balance mb-5 ${
+                  preferences.largeRevealFont ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'
+                }`}
+              >
+                {revealMode === 'hold'
+                  ? 'انگشتت را نگه دار تا نقشت دیده شود'
+                  : 'صفحه را لمس کن'}
+              </h1>
+
+              <div className="relative z-10 mb-5 flex items-center justify-center">
                 <div className="w-24 h-24 rounded-full border border-amber-500/30 bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/15 transition-colors">
                   {revealMode === 'hold' ? (
                     <ShieldCheck className="w-11 h-11 text-amber-600 dark:text-amber-400" strokeWidth={1.75} />
@@ -258,27 +271,13 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                 </div>
               </div>
 
-              <div className="relative z-10 text-sm font-bold text-amber-700 dark:text-amber-300 mb-2 tabular-nums">
-                نوبت «{displayName}»
-              </div>
-
-              <h1
-                className={`relative z-10 font-extrabold text-slate-900 dark:text-slate-100 leading-snug text-balance mb-4 ${
-                  preferences.largeRevealFont ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'
-                }`}
-              >
-                {revealMode === 'hold'
-                  ? 'انگشتت را نگه دار تا نقشت دیده شود'
-                  : 'صفحه را لمس کن'}
-              </h1>
-
               <p className="relative z-10 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-xs leading-relaxed">
                 {revealMode === 'hold'
                   ? `مطمئن شو کسی صفحه را نمی‌بیند؛ حدود ${toPersianDigits((holdDurationMs / 1000).toFixed(1))} ثانیه نگه دار.`
                   : 'مطمئن شو کسی به صفحه نگاه نمی‌کند، سپس برای دیدن نقشت یک بار لمس کن.'}
               </p>
 
-              <div className="relative z-10 mt-8 inline-flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400/90">
+              <div className="relative z-10 mt-6 inline-flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400/90">
                 <EyeOff className="w-4 h-4" />
                 <span>
                   {revealMode === 'hold' ? 'حالت امن: نگه‌داشتن انگشت' : 'نمایش محرمانه تک‌نفره'}
@@ -292,7 +291,7 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.92 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full min-h-[380px] sm:min-h-[430px] rounded-3xl bg-white dark:bg-[#121620] p-7 sm:p-10 flex flex-col items-center justify-center text-center overflow-hidden"
+              className="relative w-full min-h-[360px] sm:min-h-[410px] rounded-3xl bg-white dark:bg-[#121620] p-7 sm:p-9 flex flex-col items-center justify-center text-center overflow-hidden"
               style={{
                 border: `1.5px solid ${borderTint}`,
                 boxShadow: isDark
@@ -304,22 +303,51 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0"
                 style={{
-                  background: `radial-gradient(circle at 50% 38%, ${glowSoft} 0%, transparent 68%)`,
+                  background: `radial-gradient(circle at 50% 42%, ${glowSoft} 0%, transparent 68%)`,
                 }}
               />
 
               {preferences.autoHideAfterSeconds > 0 && autoHideRemaining > 0 && (
-                <div className="relative z-10 mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 tabular-nums">
+                <div className="relative z-10 mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 tabular-nums">
                   <Timer className="w-3.5 h-3.5" />
                   <span>قفل خودکار تا {toPersianDigits(autoHideRemaining)} ثانیه</span>
                 </div>
               )}
 
+              {/* 1. شماره صندلی: ساید */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.04, duration: 0.2 }}
+                className="relative z-10 text-sm sm:text-base font-bold text-slate-600 dark:text-slate-300 mb-2 tabular-nums"
+              >
+                صندلی {toPersianDigits(playerNumber)}: {teamLabel}
+              </motion.p>
+
+              {/* 2. عنوان نقش */}
+              <motion.h1
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08, duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+                className={`relative z-10 font-extrabold tracking-tight text-balance mb-5 ${
+                  preferences.largeRevealFont
+                    ? 'text-4xl sm:text-5xl'
+                    : 'text-3xl sm:text-4xl'
+                }`}
+                style={{
+                  color: readableColor,
+                  textShadow: isDark ? `0 0 28px ${glowStrong}` : 'none',
+                }}
+              >
+                {role.name}
+              </motion.h1>
+
+              {/* 3. آیکون */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.7 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.06, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 w-22 h-22 rounded-2xl flex items-center justify-center mb-6"
+                transition={{ delay: 0.1, duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-10 w-22 h-22 rounded-2xl flex items-center justify-center mb-5"
                 style={{
                   backgroundColor: glowSoft,
                   border: `1px solid ${borderTint}`,
@@ -334,35 +362,7 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
                 />
               </motion.div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.08, duration: 0.2 }}
-                className="relative z-10 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2 tabular-nums"
-              >
-                {displayName === `بازیکن ${toPersianDigits(playerNumber)}`
-                  ? `نقش صندلی ${toPersianDigits(playerNumber)}`
-                  : `نقش «${displayName}» (صندلی ${toPersianDigits(playerNumber)})`}
-                {preferences.showRoleTeamBadgeOnReveal && ` · جبهه ${teamLabel}`}
-              </motion.p>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-                className={`relative z-10 font-extrabold tracking-tight text-balance mb-5 ${
-                  preferences.largeRevealFont
-                    ? 'text-4xl sm:text-5xl'
-                    : 'text-3xl sm:text-4xl'
-                }`}
-                style={{
-                  color: readableColor,
-                  textShadow: isDark ? `0 0 28px ${glowStrong}` : 'none',
-                }}
-              >
-                {role.name}
-              </motion.h1>
-
+              {/* 4. توضیحات نقش */}
               <motion.p
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -376,29 +376,29 @@ export const RoleRevealScreen: React.FC<RoleRevealScreenProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
 
-      {/* Thumb-Zone Bottom Confirmation CTA */}
-      <footer className="w-full max-w-xl mx-auto pt-2 pb-safe">
-        {isRevealed ? (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            onClick={handleConfirmNext}
-            disabled={isLockedTransition}
-            className="w-full min-h-[60px] rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/15 transition-all cursor-pointer"
-          >
-            <Check className="w-6 h-6" strokeWidth={2.5} />
-            <span>متوجه شدم / نفر بعدی</span>
-          </motion.button>
-        ) : (
-          <div className="min-h-[60px] flex items-center justify-center text-xs text-slate-500">
-            پس از تایید هر نفر، امکان بازگشت به نقش قبلی وجود ندارد
-          </div>
-        )}
-      </footer>
+        {/* Thumb-Zone Confirmation CTA closely paired with card */}
+        <div className="w-full">
+          {isRevealed ? (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              onClick={handleConfirmNext}
+              disabled={isLockedTransition}
+              className="w-full min-h-[60px] rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-[0.98] text-slate-950 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/15 transition-all cursor-pointer"
+            >
+              <Check className="w-6 h-6" strokeWidth={2.5} />
+              <span>متوجه شدم / نفر بعدی</span>
+            </motion.button>
+          ) : (
+            <div className="min-h-[44px] flex items-center justify-center text-xs text-slate-500">
+              پس از تایید هر نفر، امکان بازگشت به نقش قبلی وجود ندارد
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

@@ -14,7 +14,6 @@ import {
 import { triggerHaptic } from '../../utils/haptics';
 import {
   nightAmbient,
-  playCountdownTick,
   playTimerEndAlarm,
   unlockAudioContext,
 } from '../../utils/soundEngine';
@@ -50,6 +49,7 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
   // Wall-clock refs to eliminate mobile browser timer drift
   const targetEndMsRef = useRef<number>(0);
   const lastTickedSecRef = useRef<number>(-1);
+  const hasPlayedLastWordsBellRef = useRef<boolean>(false);
 
   // Keep phone screen awake while using timer and night audio
   useWakeLock(true);
@@ -81,7 +81,7 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
         if (lastTickedSecRef.current !== 0) {
           lastTickedSecRef.current = 0;
           if (!isMuted) {
-            void playTimerEndAlarm(preferences.alarmSoundId);
+            void playTimerEndAlarm(preferences.alarmSoundId, 2);
           }
           triggerHaptic('timerEnd', preferences.vibrateOnTimerEnd);
         }
@@ -92,14 +92,14 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
         lastTickedSecRef.current = nextSec;
         if (
           preferences.warningCountdownSeconds > 0 &&
-          nextSec <= preferences.warningCountdownSeconds
+          nextSec <= preferences.warningCountdownSeconds &&
+          !hasPlayedLastWordsBellRef.current
         ) {
+          hasPlayedLastWordsBellRef.current = true;
           if (!isMuted) {
-            playCountdownTick(nextSec);
+            void playTimerEndAlarm(preferences.alarmSoundId, 1);
           }
-          if (nextSec <= 3) {
-            triggerHaptic('countdownTick', preferences.vibrateOnTimerEnd);
-          }
+          triggerHaptic('countdownTick', preferences.vibrateOnTimerEnd);
         }
       }
     };
@@ -124,6 +124,7 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
   const selectPreset = (secs: number) => {
     unlockAudioContext();
     triggerHaptic('tap', preferences.hapticFeedbackEnabled);
+    hasPlayedLastWordsBellRef.current = false;
     setIsRunning(false);
     setDurationSeconds(secs);
     setRemainingSeconds(secs);
@@ -133,19 +134,37 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
     unlockAudioContext();
     if (remainingSeconds === 0) {
       triggerHaptic('timerStart', preferences.hapticFeedbackEnabled);
+      const startsInLastWords =
+        preferences.warningCountdownSeconds > 0 &&
+        durationSeconds <= preferences.warningCountdownSeconds;
+      hasPlayedLastWordsBellRef.current = startsInLastWords;
+      if (startsInLastWords && !isMuted) {
+        void playTimerEndAlarm(preferences.alarmSoundId, 1);
+      }
       setRemainingSeconds(durationSeconds);
       setIsRunning(true);
       return;
     }
-    setIsRunning((r) => {
-      const nextRunning = !r;
-      triggerHaptic(nextRunning ? 'timerStart' : 'timerPause', preferences.hapticFeedbackEnabled);
-      return nextRunning;
-    });
+
+    const nextRunning = !isRunning;
+    if (
+      nextRunning &&
+      preferences.warningCountdownSeconds > 0 &&
+      remainingSeconds <= preferences.warningCountdownSeconds &&
+      !hasPlayedLastWordsBellRef.current
+    ) {
+      hasPlayedLastWordsBellRef.current = true;
+      if (!isMuted) {
+        void playTimerEndAlarm(preferences.alarmSoundId, 1);
+      }
+    }
+    triggerHaptic(nextRunning ? 'timerStart' : 'timerPause', preferences.hapticFeedbackEnabled);
+    setIsRunning(nextRunning);
   };
 
   const resetTimer = () => {
     triggerHaptic('timerPause', preferences.hapticFeedbackEnabled);
+    hasPlayedLastWordsBellRef.current = false;
     setIsRunning(false);
     setRemainingSeconds(durationSeconds);
   };
@@ -245,7 +264,6 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
           isMuted={isMuted}
           preferences={preferences}
           onUpdatePreferences={onUpdatePreferences}
-          onOpenCustomization={onOpenCustomization}
           onToggleMute={() => setIsMuted((m) => !m)}
           onSelectPreset={selectPreset}
           onTogglePlayPause={togglePlayPause}

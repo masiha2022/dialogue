@@ -181,10 +181,6 @@ export default function App() {
     setScreen('setup');
   };
 
-  const handleChangeRevealMode = (mode: RevealMode) => {
-    setPreferences((prev) => ({ ...prev, revealMode: mode }));
-  };
-
   const handlePrepareDistribution = (
     scenario: Scenario,
     tierKey: ScenarioTierKey,
@@ -313,7 +309,6 @@ export default function App() {
         <GameSetupScreen
           scenario={selectedSetupScenario}
           preferences={preferences}
-          onChangeRevealMode={handleChangeRevealMode}
           onOpenCustomization={() => setShowCustomizationModal(true)}
           onBack={() => setScreen('scenarios')}
           onOpenRules={(scenario, tierKey) => setRulesModalTarget({ scenario, tierKey })}

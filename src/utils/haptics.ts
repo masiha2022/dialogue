@@ -20,20 +20,12 @@ const HAPTIC_PATTERNS: Record<HapticPatternName, number | number[]> = {
 };
 
 export function isHapticsSupported(): boolean {
-  return (
-    typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
-  );
+  return false;
 }
 
 /**
- * Triggers tactile vibration via the Web Vibration API.
- * Gracefully no-ops on desktop or browsers without vibration support (e.g., iOS Safari).
+ * Tactile vibration is globally disabled across the application.
  */
-export function triggerHaptic(pattern: HapticPatternName, enabled = true): boolean {
-  if (!enabled || !isHapticsSupported()) return false;
-  try {
-    return navigator.vibrate(HAPTIC_PATTERNS[pattern]);
-  } catch {
-    return false;
-  }
+export function triggerHaptic(_pattern: HapticPatternName, _enabled = false): boolean {
+  return false;
 }

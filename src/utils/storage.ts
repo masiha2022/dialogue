@@ -20,16 +20,16 @@ const MOD_STATE_KEY = 'ravi_naghsh_mod_state_v1';
 const PREFS_KEY = 'ravi_naghsh_prefs_v1';
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
-  nightTrackId: 'wind-night',
+  nightTrackId: 'custom',
   nightCustomTrackName: '',
   customNightTracks: [],
   nightVolume: 0.65,
   alarmSoundId: 'bell',
   alarmCustomName: '',
-  revealSoundId: 'magic',
+  revealSoundId: 'silent',
   themeMode: 'dark',
-  hapticFeedbackEnabled: true,
-  vibrateOnTimerEnd: true,
+  hapticFeedbackEnabled: false,
+  vibrateOnTimerEnd: false,
   warningCountdownSeconds: 10,
   defaultSpeechSeconds: 30,
   challengeSeconds: 20,
@@ -57,11 +57,28 @@ export function loadAppPreferences(): AppPreferences {
       Array.isArray(parsed.customTimerPresets) &&
       parsed.customTimerPresets.length === LEGACY_TIMER_PRESETS.length &&
       parsed.customTimerPresets.every((v, i) => v === LEGACY_TIMER_PRESETS[i]);
+    const customTracks = Array.isArray(parsed.customNightTracks) ? parsed.customNightTracks : [];
+    const savedTrackId = parsed.nightTrackId;
+    const isCustomTrackId =
+      savedTrackId === 'custom' ||
+      (typeof savedTrackId === 'string' && savedTrackId.startsWith('custom:'));
+    const resolvedNightTrackId = isCustomTrackId
+      ? savedTrackId
+      : customTracks.length > 0
+      ? (`custom:${customTracks[0].id}` as const)
+      : 'custom';
+    const resolvedAlarmSoundId =
+      parsed.alarmSoundId === 'custom' ? 'custom' : 'bell';
 
     return {
       ...DEFAULT_APP_PREFERENCES,
       ...parsed,
-      customNightTracks: Array.isArray(parsed.customNightTracks) ? parsed.customNightTracks : [],
+      nightTrackId: resolvedNightTrackId,
+      customNightTracks: customTracks,
+      alarmSoundId: resolvedAlarmSoundId,
+      revealSoundId: 'silent',
+      hapticFeedbackEnabled: false,
+      vibrateOnTimerEnd: false,
       defaultSpeechSeconds:
         hasLegacyPresets && parsed.defaultSpeechSeconds === 45
           ? DEFAULT_APP_PREFERENCES.defaultSpeechSeconds

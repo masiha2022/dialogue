@@ -5,15 +5,12 @@ import {
   Pause,
   Play,
   RotateCcw,
-  SlidersHorizontal,
-  Timer,
   Trash2,
   Upload,
   Volume2,
   VolumeX,
 } from 'lucide-react';
 import {
-  AlarmSoundId,
   AppPreferences,
   CustomNightTrack,
   NightTrackId,
@@ -21,9 +18,6 @@ import {
 import { saveCustomAudioFile, deleteCustomAudioFile } from '../../utils/audioStorage';
 import { generateLocalId, toPersianDigits } from '../../utils/persian';
 import {
-  ALARM_SOUND_OPTIONS,
-  NIGHT_TRACK_OPTIONS,
-  playCountdownTick,
   playTimerEndAlarm,
   unlockAudioContext,
 } from '../../utils/soundEngine';
@@ -35,7 +29,6 @@ interface TimerAndAudioTabProps {
   isMuted: boolean;
   preferences: AppPreferences;
   onUpdatePreferences: (next: AppPreferences) => void;
-  onOpenCustomization: () => void;
   onToggleMute: () => void;
   onSelectPreset: (secs: number) => void;
   onTogglePlayPause: () => void;
@@ -62,7 +55,6 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
   isMuted,
   preferences,
   onUpdatePreferences,
-  onOpenCustomization,
   onToggleMute,
   onSelectPreset,
   onTogglePlayPause,
@@ -86,6 +78,9 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
   const selectedCustomId = preferences.nightTrackId.startsWith('custom:')
     ? preferences.nightTrackId.slice('custom:'.length)
     : null;
+  const hasPlayableTrack =
+    (preferences.nightTrackId === 'custom' && Boolean(preferences.nightCustomTrackName)) ||
+    (selectedCustomId !== null && customTracks.some((t) => t.id === selectedCustomId));
 
   const handleToggleLastWords = () => {
     unlockAudioContext();
@@ -95,7 +90,7 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
       warningCountdownSeconds: nextSec,
     });
     if (nextSec > 0 && !isMuted) {
-      playCountdownTick(10);
+      void playTimerEndAlarm(preferences.alarmSoundId, 1);
     }
   };
 
@@ -134,7 +129,7 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
       await deleteCustomAudioFile(`night_custom_${selectedCustomId}`);
       const nextTracks = customTracks.filter((t) => t.id !== selectedCustomId);
       const fallbackTrack: NightTrackId =
-        nextTracks.length > 0 ? `custom:${nextTracks[0].id}` : 'wind-night';
+        nextTracks.length > 0 ? `custom:${nextTracks[0].id}` : 'custom';
       onUpdatePreferences({
         ...preferences,
         customNightTracks: nextTracks,
@@ -145,10 +140,12 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
 
     if (preferences.nightTrackId === 'custom' && preferences.nightCustomTrackName) {
       await deleteCustomAudioFile('night_music');
+      const fallbackTrack: NightTrackId =
+        customTracks.length > 0 ? `custom:${customTracks[0].id}` : 'custom';
       onUpdatePreferences({
         ...preferences,
         nightCustomTrackName: '',
-        nightTrackId: 'wind-night',
+        nightTrackId: fallbackTrack,
       });
     }
   };
@@ -157,39 +154,6 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
       {/* Timer Card */}
       <section className="lg:col-span-7 rounded-3xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-5 space-y-4 shadow-sm dark:shadow-none">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <Timer className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <h2 className="text-base font-extrabold text-slate-900 dark:text-white">تایمر صحبت، چالش و دفاعیه</h2>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenCustomization}
-              className="min-h-[44px] px-3 rounded-xl border border-slate-300 dark:border-white/18 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 cursor-pointer"
-              title="سفارشی‌سازی تایمر و آلارم"
-            >
-              <SlidersHorizontal className="w-[18px] h-[18px]" />
-              <span className="hidden sm:inline">شخصی‌سازی</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onToggleMute}
-              className={`min-h-[44px] min-w-[44px] px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold cursor-pointer ${
-                isMuted
-                  ? 'border-red-500/45 bg-red-500/12 dark:bg-red-500/15 text-red-700 dark:text-red-200'
-                  : 'border-amber-500/45 bg-amber-500/12 text-amber-800 dark:text-amber-200'
-              }`}
-              aria-label={isMuted ? 'فعال‌سازی صدا' : 'بی‌صدا کردن هشدار'}
-              title={isMuted ? 'صدا خاموش است' : 'هشدار صوتی روشن است'}
-            >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              <span className="hidden sm:inline">{isMuted ? 'بی‌صدا' : 'صدا روشن'}</span>
-            </button>
-          </div>
-        </div>
 
         <div
           className={`rounded-2xl border p-5 text-center space-y-3 transition-colors ${
@@ -241,12 +205,12 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
           </p>
         </div>
 
-        {/* Last Words Toggle & Sound Test Bar */}
-        <div className="rounded-2xl border border-slate-200 dark:border-white/14 bg-slate-50 dark:bg-[#0B0E15] p-3 flex flex-wrap items-center justify-between gap-2">
+        {/* Last Words + Icon-only Timer Mute Bar */}
+        <div className="rounded-2xl border border-slate-200 dark:border-white/14 bg-slate-50 dark:bg-[#0B0E15] p-3 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={handleToggleLastWords}
-            className={`min-h-[44px] px-3 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-colors ${
+            className={`min-h-[42px] px-3 rounded-xl border text-xs font-extrabold flex items-center gap-2 cursor-pointer transition-colors ${
               isTickEnabled
                 ? 'border-amber-500/55 bg-amber-500/15 dark:bg-amber-500/18 text-amber-800 dark:text-amber-200'
                 : 'border-slate-300 dark:border-white/18 bg-white dark:bg-[#161B28] text-slate-700 dark:text-slate-300'
@@ -258,14 +222,16 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
 
           <button
             type="button"
-            onClick={() => {
-              unlockAudioContext();
-              playCountdownTick(3);
-            }}
-            className="min-h-[44px] px-3 rounded-xl border border-slate-300 dark:border-white/18 bg-white dark:bg-[#161B28] hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5 cursor-pointer"
+            onClick={onToggleMute}
+            className={`min-h-[42px] min-w-[42px] rounded-xl border flex items-center justify-center cursor-pointer transition-colors ${
+              isMuted
+                ? 'border-red-500/45 bg-red-500/12 dark:bg-red-500/15 text-red-700 dark:text-red-200'
+                : 'border-amber-500/45 bg-amber-500/12 text-amber-800 dark:text-amber-200'
+            }`}
+            aria-label={isMuted ? 'فعال‌سازی صدای تایمر' : 'بی‌صدا کردن تایمر'}
+            title={isMuted ? 'تایمر بی‌صدا است' : 'صدای تایمر روشن است'}
           >
-            <Volume2 className="w-4 h-4 text-amber-600 dark:text-amber-300" />
-            <span>تست</span>
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
         </div>
 
@@ -315,102 +281,51 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
             <RotateCcw className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Quick Alarm Sound Picker */}
-        <div className="pt-3 border-t border-slate-200 dark:border-white/12 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">صدای آلارم پایان تایمر:</span>
-          <div className="flex items-center gap-2">
-            <select
-              value={preferences.alarmSoundId}
-              onChange={(e) =>
-                onUpdatePreferences({
-                  ...preferences,
-                  alarmSoundId: e.target.value as AlarmSoundId,
-                })
-              }
-              className="min-h-[44px] rounded-xl border border-slate-300 dark:border-white/18 bg-slate-50 dark:bg-[#161B28] px-3 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-            >
-              {ALARM_SOUND_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id} className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white">
-                  {opt.id === 'custom' && preferences.alarmCustomName
-                    ? `دلخواه: ${preferences.alarmCustomName}`
-                    : opt.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                unlockAudioContext();
-                void playTimerEndAlarm(preferences.alarmSoundId);
-              }}
-              className="min-h-[44px] min-w-[44px] rounded-xl border border-amber-500/45 bg-amber-500/15 hover:bg-amber-500/25 flex items-center justify-center text-amber-800 dark:text-amber-200 cursor-pointer"
-              aria-label="تست صدای آلارم"
-              title="تست صدای آلارم"
-            >
-              <Volume2 className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
       </section>
 
-      {/* Column 2: Night Cover Whisper-Masking Audio */}
+      {/* Column 2: Night Audio */}
       <div className="lg:col-span-5 space-y-5">
         <section className="rounded-3xl border border-slate-200 dark:border-white/14 bg-white dark:bg-[#121620] p-5 space-y-4 shadow-sm dark:shadow-none">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                <Music className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                <span>پخش‌کننده صدای شب (ضد نجوا)</span>
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                صداهای متراکم و پرانرژی برای پوشاندن کامل پچ‌پچ و حرکت مافیا، یا افزودن چند آهنگ دلخواه از گوشی
-              </p>
-            </div>
-          </div>
+          <h2 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <Music className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span>آهنگ شب</span>
+          </h2>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
-              انتخاب صدای پوشش شب:
-            </label>
             <select
-              value={preferences.nightTrackId}
-              onChange={(e) => onSelectNightTrack(e.target.value as NightTrackId)}
+              value={hasPlayableTrack ? preferences.nightTrackId : ''}
+              onChange={(e) => {
+                if (e.target.value) {
+                  onSelectNightTrack(e.target.value as NightTrackId);
+                }
+              }}
               className="w-full min-h-[46px] rounded-xl border border-slate-300 dark:border-white/18 bg-slate-50 dark:bg-[#161B28] px-3 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 cursor-pointer"
             >
-              <optgroup label="صداهای ضد نجوا (آفلاین)">
-                {NIGHT_TRACK_OPTIONS.map((t) => (
-                  <option
-                    key={t.id}
-                    value={t.id}
-                    className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
-                  >
-                    {t.label}
-                  </option>
-                ))}
-              </optgroup>
-
-              {(customTracks.length > 0 || preferences.nightCustomTrackName) && (
-                <optgroup label="آهنگ‌های دلخواه من">
-                  {preferences.nightCustomTrackName && (
-                    <option
-                      value="custom"
-                      className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
-                    >
-                      دلخواه: {preferences.nightCustomTrackName}
-                    </option>
-                  )}
-                  {customTracks.map((trk) => (
-                    <option
-                      key={trk.id}
-                      value={`custom:${trk.id}`}
-                      className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
-                    >
-                      دلخواه: {trk.name}
-                    </option>
-                  ))}
-                </optgroup>
+              {!hasPlayableTrack && (
+                <option value="" disabled className="bg-white dark:bg-[#161B28] text-slate-500">
+                  {customTracks.length > 0 || preferences.nightCustomTrackName
+                    ? 'یک آهنگ دلخواه انتخاب کنید...'
+                    : 'هنوز آهنگ دلخواهی اضافه نشده است'}
+                </option>
               )}
+
+              {preferences.nightCustomTrackName && (
+                <option
+                  value="custom"
+                  className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
+                >
+                  {preferences.nightCustomTrackName}
+                </option>
+              )}
+              {customTracks.map((trk) => (
+                <option
+                  key={trk.id}
+                  value={`custom:${trk.id}`}
+                  className="bg-white dark:bg-[#161B28] text-slate-900 dark:text-white"
+                >
+                  {trk.name}
+                </option>
+              ))}
             </select>
 
             <div className="flex items-center gap-2">
@@ -426,8 +341,7 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
                 />
               </label>
 
-              {(selectedCustomId !== null ||
-                (preferences.nightTrackId === 'custom' && preferences.nightCustomTrackName)) && (
+              {hasPlayableTrack && (
                 <button
                   type="button"
                   onClick={() => void handleDeleteSelectedCustomTrack()}
@@ -443,14 +357,17 @@ export const TimerAndAudioTab: React.FC<TimerAndAudioTabProps> = ({
 
           <button
             type="button"
+            disabled={!isAmbientPlaying && !hasPlayableTrack}
             onClick={() => {
               unlockAudioContext();
               onToggleAmbient();
             }}
-            className={`w-full min-h-[58px] rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all cursor-pointer border ${
-              isAmbientPlaying
-                ? 'bg-blue-500/18 dark:bg-blue-500/25 border-blue-500/65 dark:border-blue-400/70 text-blue-900 dark:text-blue-100 hover:bg-blue-500/25 dark:hover:bg-blue-500/30'
-                : 'bg-slate-100 dark:bg-[#161B28] border-slate-300 dark:border-white/20 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10'
+            className={`w-full min-h-[58px] rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all border ${
+              !isAmbientPlaying && !hasPlayableTrack
+                ? 'bg-slate-100 dark:bg-[#161B28]/60 border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                : isAmbientPlaying
+                ? 'bg-blue-500/18 dark:bg-blue-500/25 border-blue-500/65 dark:border-blue-400/70 text-blue-900 dark:text-blue-100 hover:bg-blue-500/25 dark:hover:bg-blue-500/30 cursor-pointer'
+                : 'bg-slate-100 dark:bg-[#161B28] border-slate-300 dark:border-white/20 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 cursor-pointer'
             }`}
           >
             {isAmbientPlaying ? (

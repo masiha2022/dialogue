@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
-  Fingerprint,
   Minus,
   Pencil,
   Plus,
-  ShieldCheck,
   Shuffle,
   SlidersHorizontal,
   Sparkles,
-  UserCheck,
 } from 'lucide-react';
 import {
   AppPreferences,
@@ -27,7 +24,6 @@ import { RoleIcon } from '../RoleIcon';
 interface GameSetupScreenProps {
   scenario: Scenario;
   preferences: AppPreferences;
-  onChangeRevealMode: (mode: RevealMode) => void;
   onOpenCustomization: () => void;
   onBack: () => void;
   onOpenRules: (scenario: Scenario, tierKey: ScenarioTierKey) => void;
@@ -44,17 +40,9 @@ interface GameSetupScreenProps {
 
 const TIER_KEYS: ScenarioTierKey[] = ['basic', 'advanced', 'expert'];
 
-function resizePlayerNames(current: string[], targetCount: number): string[] {
-  return Array.from({ length: targetCount }, (_, i) => {
-    const existing = current[i]?.trim();
-    return existing || `بازیکن ${toPersianDigits(i + 1)}`;
-  });
-}
-
 export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
   scenario,
   preferences,
-  onChangeRevealMode,
   onOpenCustomization,
   onBack,
   onOpenRules,
@@ -67,25 +55,7 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
   const [playerCount, setPlayerCount] = useState<number>(() =>
     Math.max(2, getTotalRoleCount(scenario.tiers.basic.roles) || scenario.tiers.basic.recommendedPlayers)
   );
-  const [revealMode, setRevealMode] = useState<RevealMode>(preferences.revealMode);
-
-  // Player Names support
-  const [useCustomNames, setUseCustomNames] = useState(false);
-  const [playerNames, setPlayerNames] = useState<string[]>(() =>
-    resizePlayerNames(
-      [],
-      Math.max(2, getTotalRoleCount(scenario.tiers.basic.roles) || scenario.tiers.basic.recommendedPlayers)
-    )
-  );
   const [customizingRole, setCustomizingRole] = useState<RoleDefinition | null>(null);
-
-  useEffect(() => {
-    setRevealMode(preferences.revealMode);
-  }, [preferences.revealMode]);
-
-  useEffect(() => {
-    setPlayerNames((prev) => resizePlayerNames(prev, playerCount));
-  }, [playerCount]);
 
   const applyTier = (tierKey: ScenarioTierKey) => {
     triggerHaptic('tap', preferences.hapticFeedbackEnabled);
@@ -143,19 +113,14 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
     setPlayerCount(nextCount);
   };
 
-  const handleRevealModeSelect = (mode: RevealMode) => {
-    triggerHaptic('tap', preferences.hapticFeedbackEnabled);
-    setRevealMode(mode);
-    onChangeRevealMode(mode);
-  };
-
   const handleSubmit = () => {
     if (!isValidSetup) return;
     triggerHaptic('confirm', preferences.hapticFeedbackEnabled);
     const activeRoles = workingRoles.filter((r) => r.count > 0);
-    const finalNames = useCustomNames
-      ? resizePlayerNames(playerNames, playerCount)
-      : Array.from({ length: playerCount }, (_, idx) => `بازیکن ${toPersianDigits(idx + 1)}`);
+    const finalNames = Array.from(
+      { length: playerCount },
+      (_, idx) => `بازیکن ${toPersianDigits(idx + 1)}`
+    );
     onStartDistribution(
       scenario,
       selectedTierKey,
@@ -163,7 +128,7 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
       playerCount,
       activeRoles,
       finalNames,
-      revealMode
+      preferences.revealMode
     );
   };
 
@@ -218,14 +183,9 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
             aria-labelledby="tier-select-heading"
             className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-5 space-y-3.5 shadow-xs dark:shadow-none"
           >
-            <div>
-              <h2 id="tier-select-heading" className="text-sm font-semibold text-slate-900 dark:text-slate-200">
-                ۱. انتخاب سطح سناریو
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                ترکیب نقش‌ها بر اساس سطح پایه، پیشرفته یا فوق پیشرفته
-              </p>
-            </div>
+            <h2 id="tier-select-heading" className="text-sm font-semibold text-slate-900 dark:text-slate-200">
+              ۱. انتخاب سطح سناریو
+            </h2>
 
             <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-[#090B10] border border-slate-200 dark:border-white/8">
               {TIER_KEYS.map((key) => {
@@ -262,19 +222,14 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
             )}
           </section>
 
-          {/* 2. Player Count & Names */}
+          {/* 2. Player Count */}
           <section
             aria-labelledby="player-count-heading"
-            className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-5 space-y-4 shadow-xs dark:shadow-none"
+            className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-5 space-y-3.5 shadow-xs dark:shadow-none"
           >
-            <div>
-              <h2 id="player-count-heading" className="text-sm font-semibold text-slate-900 dark:text-slate-200">
-                ۲. تعداد و اسامی بازیکنان
-              </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                تعداد نفرات میز و ثبت اختیاری اسامی بازیکنان
-              </p>
-            </div>
+            <h2 id="player-count-heading" className="text-sm font-semibold text-slate-900 dark:text-slate-200">
+              ۲. تعداد بازیکنان
+            </h2>
 
             <div className="flex items-center justify-between gap-4 bg-slate-100 dark:bg-[#0B0E15] rounded-2xl p-2 border border-slate-200 dark:border-white/6">
               <button
@@ -287,11 +242,8 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                 <Minus className="w-6 h-6" />
               </button>
 
-              <div className="text-center">
-                <div className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums leading-none">
-                  {toPersianDigits(playerCount)}
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">نفر</div>
+              <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 tabular-nums leading-none">
+                {toPersianDigits(playerCount)} نفر
               </div>
 
               <button
@@ -317,105 +269,21 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                 </span>
               </button>
             )}
-
-            {/* Toggle Custom Player Names */}
-            <div className="pt-2 border-t border-slate-200 dark:border-white/6 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setUseCustomNames((v) => !v)}
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-300 cursor-pointer min-h-[36px]"
-                >
-                  <UserCheck className={`w-4 h-4 ${useCustomNames ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                  <span>{useCustomNames ? 'بستن لیست اسامی بازیکنان' : 'ثبت اسم واقعی بازیکنان (اختیاری)'}</span>
-                </button>
-                <span className="text-[11px] text-slate-500">
-                  {useCustomNames ? 'فعال' : 'شماره‌ای'}
-                </span>
-              </div>
-
-              {useCustomNames && (
-                <div className="grid grid-cols-2 gap-2 max-h-[210px] overflow-y-auto pr-0.5">
-                  {playerNames.map((name, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5">
-                      <span className="w-5 text-[11px] font-bold text-slate-500 tabular-nums shrink-0">
-                        {toPersianDigits(idx + 1)}
-                      </span>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => {
-                          const next = [...playerNames];
-                          next[idx] = e.target.value;
-                          setPlayerNames(next);
-                        }}
-                        placeholder={`بازیکن ${toPersianDigits(idx + 1)}`}
-                        className="w-full min-h-[38px] rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-[#090B10] px-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500/60"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* 3. Anti-Peek Reveal Security Mode */}
-          <section className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-4 space-y-2.5 shadow-xs dark:shadow-none">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>نحوه نمایش محرمانه نقش</span>
-              </span>
-              <button
-                type="button"
-                onClick={onOpenCustomization}
-                className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
-              >
-                تنظیمات بیشتر...
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-[#090B10] border border-slate-200 dark:border-white/8">
-              <button
-                type="button"
-                onClick={() => handleRevealModeSelect('tap')}
-                className={`min-h-[44px] rounded-lg px-2 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                  revealMode === 'tap'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-white/5'
-                }`}
-              >
-                <Fingerprint className="w-3.5 h-3.5" />
-                <span>لمس سریع (یک ضربه)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRevealModeSelect('hold')}
-                className={`min-h-[44px] rounded-lg px-2 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-                  revealMode === 'hold'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-white/5'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>حالت امن (نگه‌داشتن)</span>
-              </button>
-            </div>
           </section>
         </div>
 
-        {/* Column 2: Exact Role Distribution Summary with Direct Icon/Color/Team Customization */}
+        {/* Column 2: Role Distribution Summary */}
         <section
           aria-labelledby="role-summary-heading"
           className="lg:col-span-6 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-[#121620] p-5 space-y-4 shadow-xs dark:shadow-none"
         >
-          <div>
+          <div className="flex items-center justify-between gap-2">
             <h2 id="role-summary-heading" className="text-sm font-semibold text-slate-900 dark:text-slate-200">
-              ۳. خلاصه و سفارشی‌سازی نقش‌ها
+              ۳. نقش‌ها
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 tabular-nums">
-              سطح {activeTier.label} · مجموع نقش‌ها: {toPersianDigits(totalAssignedRoles)} از {toPersianDigits(playerCount)} بازیکن (برای تغییر آیکون یا رنگ روی آیکون نقش بزنید)
-            </p>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 tabular-nums">
+              {toPersianDigits(totalAssignedRoles)} از {toPersianDigits(playerCount)}
+            </span>
           </div>
 
           {diff !== 0 && (
@@ -470,11 +338,6 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                           <Pencil className="w-3 h-3" />
                         </button>
                       </div>
-                      {role.description && (
-                        <div className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-[175px] sm:max-w-[230px]">
-                          {role.description}
-                        </div>
-                      )}
                     </div>
                   </div>
 

@@ -1,9 +1,7 @@
 import React from 'react';
 import {
   GraduationCap,
-  Home,
   Instagram,
-  Layers,
   Moon,
   Play,
   SlidersHorizontal,
@@ -48,11 +46,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 }) => {
   const isDark = themeMode === 'dark';
 
+  const handleOpenScenarios = () => {
+    triggerHaptic('confirm', hapticEnabled);
+    onOpenScenarios();
+    if (onOpenScenarios !== onStartSelectScenario) {
+      // Keep prop parity if caller overrides either handler
+    }
+  };
+
   return (
-    <div className="relative z-10 min-h-dvh flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-24 sm:pb-8 transition-colors">
+    <div className="relative z-10 min-h-dvh flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-6 pb-safe sm:pb-8 transition-colors">
       <OfflineBanner />
 
-      {/* Clean 3-Zone Top Bar */}
+      {/* Clean Top Bar */}
       <header className="sticky top-0 z-30 h-14 bg-white/75 dark:bg-[#090B10]/75 backdrop-blur-md border-b border-slate-200/80 dark:border-white/10 px-3 sm:px-6">
         <div className="w-full max-w-6xl mx-auto h-full flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
@@ -65,52 +71,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </span>
           </div>
 
-          <nav
-            aria-label="مسیرهای اصلی"
-            className="hidden sm:flex items-center gap-6 text-sm font-bold text-slate-600 dark:text-slate-300"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenScenarios();
-              }}
-              className="hover:text-red-600 dark:hover:text-amber-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[44px]"
-            >
-              سناریوها
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenTools();
-              }}
-              className="hover:text-red-600 dark:hover:text-amber-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[44px]"
-            >
-              ابزار
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenGuide();
-              }}
-              className="hover:text-red-600 dark:hover:text-amber-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[44px]"
-            >
-              راهنما
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenCustomization();
-              }}
-              className="hover:text-red-600 dark:hover:text-amber-400 transition-colors whitespace-nowrap shrink-0 cursor-pointer min-h-[44px]"
-            >
-              شخصی‌سازی
-            </button>
-          </nav>
-
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
@@ -119,18 +79,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 onToggleTheme();
               }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/15 bg-slate-100 dark:bg-[#161B28] hover:bg-slate-200 dark:hover:bg-white/10 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs font-bold text-slate-800 dark:text-slate-100 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              aria-label={isDark ? 'تغییر به تم روز' : 'تغییر به تم شب'}
-              title={isDark ? 'تغییر به تم روز' : 'تغییر به تم شب'}
+              aria-label={isDark ? 'تغییر به روز' : 'تغییر به شب'}
+              title={isDark ? 'تغییر به روز' : 'تغییر به شب'}
             >
               {isDark ? (
                 <>
                   <Sun className="w-4 h-4 text-amber-400" />
-                  <span>تم روز</span>
+                  <span>روز</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-4 h-4 text-slate-700" />
-                  <span>تم شب</span>
+                  <span>شب</span>
                 </>
               )}
             </button>
@@ -140,7 +100,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </header>
 
-      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-3 flex-1 flex flex-col gap-4">
+      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-2 flex-1 flex flex-col gap-4">
         {/* Active Session Resume Banner */}
         {activeSession && (
           <section className="rounded-2xl border border-amber-500/45 bg-amber-500/12 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -177,22 +137,58 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </section>
         )}
 
-        {/* Open Space Showcasing the Pervasive Background */}
-        <div className="flex-1 min-h-[150px]" aria-hidden="true" />
+        {/* Centered Balanced 2-Column Grid of 4 Equal Circular Icon-Only Buttons */}
+        <div className="flex-1 flex items-center justify-center py-6">
+          <div className="grid grid-cols-2 place-items-center gap-6 sm:gap-8 w-[500px] h-[500px]">
+            <button
+              type="button"
+              onClick={handleOpenScenarios}
+              aria-label="سناریوها"
+              title="سناریوها"
+              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-amber-500 hover:bg-amber-400 active:scale-[0.95] text-slate-950 flex items-center justify-center shadow-xl shadow-amber-500/25 ring-4 ring-amber-500/20 transition-all cursor-pointer select-none shrink-0"
+            >
+              <Play className="w-9 h-9 sm:w-10 sm:h-10 fill-current transition-transform group-hover:scale-105" />
+            </button>
 
-        {/* Circular Start Button above the Instagram Link */}
-        <div className="shrink-0 flex justify-center py-2">
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('confirm', hapticEnabled);
-              onStartSelectScenario();
-            }}
-            aria-label="شروع بازی"
-            className="group relative w-[130px] h-[130px] pl-0 -mb-[19px] rounded-full bg-[#C4161C] hover:bg-[#AD1217] dark:bg-amber-500 dark:hover:bg-amber-400 active:scale-[0.96] text-white dark:text-slate-950 font-extrabold flex items-center justify-center shadow-2xl shadow-red-600/25 dark:shadow-amber-500/25 ring-8 ring-red-600/12 dark:ring-amber-500/15 transition-all cursor-pointer select-none"
-          >
-            <Play className="w-14 h-14 sm:w-16 sm:h-16 fill-current transition-transform group-hover:scale-105" />
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap', hapticEnabled);
+                onOpenTools();
+              }}
+              aria-label="ابزار"
+              title="ابزار"
+              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-blue-500/25 ring-4 ring-blue-500/20 transition-all cursor-pointer select-none shrink-0"
+            >
+              <Timer className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap', hapticEnabled);
+                onOpenGuide();
+              }}
+              aria-label="راهنما"
+              title="راهنما"
+              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-emerald-500/25 ring-4 ring-emerald-500/20 transition-all cursor-pointer select-none shrink-0"
+            >
+              <GraduationCap className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('tap', hapticEnabled);
+                onOpenCustomization();
+              }}
+              aria-label="شخصی‌سازی"
+              title="شخصی‌سازی"
+              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-violet-600 hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-violet-500/25 ring-4 ring-violet-500/20 transition-all cursor-pointer select-none shrink-0"
+            >
+              <SlidersHorizontal className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+            </button>
+          </div>
         </div>
 
         {/* Short Simple Instagram Hyperlink at Page Bottom */}
@@ -210,71 +206,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </a>
         </div>
       </main>
-
-      {/* Mobile Thumb-Zone Bottom Navigation Bar */}
-      <nav
-        aria-label="منوی اصلی موبایل"
-        className="sm:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 dark:border-white/16 bg-white/85 dark:bg-[#0E121B]/85 backdrop-blur-md px-1.5 pt-1.5 pb-safe"
-      >
-        <div className="grid grid-cols-5 gap-1">
-          <button
-            type="button"
-            onClick={() => triggerHaptic('tap', hapticEnabled)}
-            className="min-h-[54px] rounded-xl flex flex-col items-center justify-center gap-1 text-[#C4161C] dark:text-amber-300 bg-red-500/10 dark:bg-amber-500/18 border border-red-500/30 dark:border-amber-400/35 font-extrabold cursor-pointer"
-          >
-            <Home className="w-[18px] h-[18px]" />
-            <span className="text-[11px]">خانه</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('tap', hapticEnabled);
-              onOpenScenarios();
-            }}
-            className="min-h-[54px] rounded-xl flex flex-col items-center justify-center gap-1 text-slate-700 dark:text-slate-100 bg-slate-100 dark:bg-[#151A26] border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 font-bold cursor-pointer"
-          >
-            <Layers className="w-[18px] h-[18px] text-[#C4161C] dark:text-red-400" />
-            <span className="text-[11px]">سناریوها</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('tap', hapticEnabled);
-              onOpenTools();
-            }}
-            className="min-h-[54px] rounded-xl flex flex-col items-center justify-center gap-1 text-slate-700 dark:text-slate-100 bg-slate-100 dark:bg-[#151A26] border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 font-bold cursor-pointer"
-          >
-            <Timer className="w-[18px] h-[18px] text-amber-600 dark:text-amber-300" />
-            <span className="text-[11px]">ابزار</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('tap', hapticEnabled);
-              onOpenGuide();
-            }}
-            className="min-h-[54px] rounded-xl flex flex-col items-center justify-center gap-1 text-slate-700 dark:text-slate-100 bg-slate-100 dark:bg-[#151A26] border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 font-bold cursor-pointer"
-          >
-            <GraduationCap className="w-[18px] h-[18px] text-emerald-600 dark:text-emerald-300" />
-            <span className="text-[11px]">راهنما</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              triggerHaptic('tap', hapticEnabled);
-              onOpenCustomization();
-            }}
-            className="min-h-[54px] rounded-xl flex flex-col items-center justify-center gap-1 text-slate-700 dark:text-slate-100 bg-slate-100 dark:bg-[#151A26] border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 font-bold cursor-pointer"
-          >
-            <SlidersHorizontal className="w-[18px] h-[18px] text-blue-600 dark:text-blue-300" />
-            <span className="text-[11px]">شخصی‌سازی</span>
-          </button>
-        </div>
-      </nav>
     </div>
   );
 };

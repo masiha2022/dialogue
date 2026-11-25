@@ -55,7 +55,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   return (
-    <div className="relative z-10 min-h-dvh flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-6 pb-safe sm:pb-8 transition-colors">
+    <div className="relative z-10 min-h-dvh w-full overflow-x-hidden flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-14 sm:pb-14 transition-colors">
       <OfflineBanner />
 
       {/* Clean Top Bar */}
@@ -100,7 +100,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </header>
 
-      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-2 flex-1 flex flex-col gap-4">
+      <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col gap-4">
         {/* Active Session Resume Banner */}
         {activeSession && (
           <section className="rounded-2xl border border-amber-500/45 bg-amber-500/12 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -137,73 +137,75 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </section>
         )}
 
-        {/* Centered Balanced 2-Column Grid of 4 Equal Circular Icon-Only Buttons */}
-        <div className="flex-1 flex items-center justify-center py-6">
-          <div className="grid grid-cols-2 place-items-center gap-6 sm:gap-8 w-[500px] h-[500px]">
-            <button
-              type="button"
-              onClick={handleOpenScenarios}
-              aria-label="سناریوها"
-              title="سناریوها"
-              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-amber-500 hover:bg-amber-400 active:scale-[0.95] text-slate-950 flex items-center justify-center shadow-xl shadow-amber-500/25 ring-4 ring-amber-500/20 transition-all cursor-pointer select-none shrink-0"
-            >
-              <Play className="w-9 h-9 sm:w-10 sm:h-10 fill-current transition-transform group-hover:scale-105" />
-            </button>
+        {/* Centered Balanced 2-Column Grid of 4 Equal Circular Buttons with Doubled Spacing & Centered Instagram Link */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative flex items-center justify-center">
+            <div className="grid grid-cols-2 place-items-center gap-14 sm:gap-20 w-[350px] h-[350px] mx-auto">
+              <button
+                type="button"
+                onClick={handleOpenScenarios}
+                aria-label="سناریوها"
+                title="سناریوها"
+                className="group w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] rounded-full bg-amber-500 hover:bg-amber-400 active:scale-[0.95] text-slate-950 flex items-center justify-center shadow-xl shadow-amber-500/25 ring-4 ring-amber-500/20 transition-all cursor-pointer select-none shrink-0"
+              >
+                <Play className="w-9 h-9 sm:w-10 sm:h-10 fill-current transition-transform group-hover:scale-105" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenTools();
-              }}
-              aria-label="ابزار"
-              title="ابزار"
-              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-blue-500/25 ring-4 ring-blue-500/20 transition-all cursor-pointer select-none shrink-0"
-            >
-              <Timer className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap', hapticEnabled);
+                  onOpenTools();
+                }}
+                aria-label="ابزار"
+                title="ابزار"
+                className="group w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] rounded-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-blue-500/25 ring-4 ring-blue-500/20 transition-all cursor-pointer select-none shrink-0"
+              >
+                <Timer className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenGuide();
-              }}
-              aria-label="راهنما"
-              title="راهنما"
-              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-emerald-500/25 ring-4 ring-emerald-500/20 transition-all cursor-pointer select-none shrink-0"
-            >
-              <GraduationCap className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap', hapticEnabled);
+                  onOpenGuide();
+                }}
+                aria-label="راهنما"
+                title="راهنما"
+                className="group w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] rounded-full bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-emerald-500/25 ring-4 ring-emerald-500/20 transition-all cursor-pointer select-none shrink-0"
+              >
+                <GraduationCap className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic('tap', hapticEnabled);
-                onOpenCustomization();
-              }}
-              aria-label="شخصی‌سازی"
-              title="شخصی‌سازی"
-              className="group w-[96px] h-[96px] sm:w-[108px] sm:h-[108px] rounded-full bg-violet-600 hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-violet-500/25 ring-4 ring-violet-500/20 transition-all cursor-pointer select-none shrink-0"
-            >
-              <SlidersHorizontal className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('tap', hapticEnabled);
+                  onOpenCustomization();
+                }}
+                aria-label="شخصی‌سازی"
+                title="شخصی‌سازی"
+                className="group w-[96px] h-[96px] sm:w-[112px] sm:h-[112px] rounded-full bg-violet-600 hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400 active:scale-[0.95] text-white flex items-center justify-center shadow-xl shadow-violet-500/25 ring-4 ring-violet-500/20 transition-all cursor-pointer select-none shrink-0"
+              >
+                <SlidersHorizontal className="w-9 h-9 sm:w-10 sm:h-10 transition-transform group-hover:scale-105" />
+              </button>
+            </div>
+
+            {/* Instagram Hyperlink centered horizontally and vertically */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <a
+                href={DIALOGUE_INSTAGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => triggerHaptic('tap', hapticEnabled)}
+                aria-label="صفحه اینستاگرام کافه دیالوگ (@dialogue_gameclub)"
+                className="pointer-events-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-xs sm:text-sm font-semibold text-[#C4161C] dark:text-amber-400 underline underline-offset-4 hover:opacity-80 transition-opacity whitespace-nowrap drop-shadow-[0_1px_2px_rgba(255,255,255,0.85)] dark:drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]"
+              >
+                <Instagram className="w-4 h-4 shrink-0" />
+                <span>کافه دیالوگ</span>
+              </a>
+            </div>
           </div>
-        </div>
-
-        {/* Short Simple Instagram Hyperlink at Page Bottom */}
-        <div className="shrink-0 flex justify-center pt-1 pb-1">
-          <a
-            href={DIALOGUE_INSTAGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => triggerHaptic('tap', hapticEnabled)}
-            aria-label="صفحه اینستاگرام کافه دیالوگ (@dialogue_gameclub)"
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#C4161C] dark:text-amber-400 underline underline-offset-4 hover:opacity-80 transition-opacity py-1 drop-shadow-[0_1px_2px_rgba(255,255,255,0.85)] dark:drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]"
-          >
-            <Instagram className="w-4 h-4 shrink-0" />
-            <span>کافه دیالوگ</span>
-          </a>
         </div>
       </main>
     </div>

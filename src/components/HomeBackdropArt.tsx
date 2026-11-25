@@ -150,7 +150,7 @@ export const HomeBackdropArt: React.FC<HomeBackdropArtProps> = ({
   return (
     <div
       className={`w-full h-full flex items-center justify-center select-none ${
-        compact ? 'p-2' : 'p-6 pb-28 sm:pb-24'
+        compact ? 'p-2' : 'p-6'
       }`}
     >
       <img
@@ -159,7 +159,7 @@ export const HomeBackdropArt: React.FC<HomeBackdropArtProps> = ({
         referrerPolicy="no-referrer"
         className={`${
           compact ? 'max-h-14' : 'max-h-56 sm:max-h-72'
-        } w-auto object-contain transition-opacity opacity-20`}
+        } w-auto max-w-full object-contain mx-auto transition-opacity opacity-20`}
       />
     </div>
   );

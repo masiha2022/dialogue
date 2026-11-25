@@ -176,6 +176,18 @@ export default function App() {
     });
   };
 
+  const moveScenarioToTop = (scenarioId: string) => {
+    setScenarios((prev) => {
+      const target = prev.find((s) => s.id === scenarioId);
+      if (!target || prev[0]?.id === scenarioId) return prev;
+      return [target, ...prev.filter((s) => s.id !== scenarioId)];
+    });
+  };
+
+  const handleReorderScenarios = (nextScenarios: Scenario[]) => {
+    setScenarios(nextScenarios);
+  };
+
   const handleStartGameSetup = (scenario: Scenario) => {
     setSetupScenarioId(scenario.id);
     setScreen('setup');
@@ -192,6 +204,7 @@ export default function App() {
   ) => {
     const deck = buildShuffledDeck(rolesToDeal, playerNames);
     saveModeratorMatchState(null);
+    moveScenarioToTop(scenario.id);
     setActiveSession({
       id: generateLocalId('session'),
       scenarioId: scenario.id,
@@ -224,6 +237,7 @@ export default function App() {
       return;
     }
     saveModeratorMatchState(null);
+    moveScenarioToTop(activeSession.scenarioId);
     setActiveSession({
       ...activeSession,
       id: generateLocalId('session'),
@@ -298,6 +312,7 @@ export default function App() {
           onOpenRules={(scenario) => setRulesModalTarget({ scenario, tierKey: 'basic' })}
           onOpenImport={() => setShowImportModal(true)}
           onRestoreLibrary={handleRestoreLibrary}
+          onReorderScenarios={handleReorderScenarios}
           onOpenTools={() => {
             setToolsWithSession(Boolean(activeSession));
             setToolsReturnScreen('scenarios');
@@ -332,7 +347,10 @@ export default function App() {
           tierLabel={activeSession.tierLabel}
           revealMode={activeSession.revealMode}
           preferences={preferences}
-          onComplete={() => setScreen('complete')}
+          onComplete={() => {
+            moveScenarioToTop(activeSession.scenarioId);
+            setScreen('complete');
+          }}
           onAbortGame={() => setScreen('setup')}
         />
       ) : screen === 'complete' && activeSession ? (

@@ -3,7 +3,7 @@ name: Build Offline Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch: # امکان اجرای دستی از تب Actions
 
 jobs:
   build-apk:
@@ -33,8 +33,8 @@ jobs:
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
-          # تولید خودکار تمام سایزهای آیکون و اسپلش اسکرین از پوشه assets
-          npx capacitor-assets generate --android
+          # اگر پوشه assets در مخزن وجود داشته باشد، آیکون و اسپلش را می‌سازد
+          if [ -d "assets" ]; then npx capacitor-assets generate --android; fi
           npx cap sync android
 
       - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید
@@ -51,7 +51,7 @@ jobs:
           ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=${{ steps.setup-java.outputs.path }}
 
       - name: 9. آپلود فایل APK برای دانلود
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Mafia-Offline-App
           path: android/app/build/outputs/apk/debug/app-debug.apk

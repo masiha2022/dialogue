@@ -24,7 +24,6 @@ jobs:
 
       - name: 4. تنظیم مسیر نسبی برای اجرای آفلاین
         run: |
-          # اطمینان از اینکه فایل‌ها بدون اینترنت در اندروید لود شوند
           sed -i "s/defineConfig({/defineConfig({\n  base: '.\/',/g" vite.config.ts || true
 
       - name: 5. بیلد گرفتن از نسخه وب
@@ -37,16 +36,17 @@ jobs:
           npx cap sync android
 
       - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید
+        id: setup-java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: 8. ساخت نهایی فایل APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=${{ steps.setup-java.outputs.path }}
 
       - name: 9. آپلود فایل APK برای دانلود
         uses: actions/upload-artifact@v4

@@ -16,28 +16,33 @@ jobs:
       - name: 2. نصب ابزار Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: 3. نصب پکیج‌ها، Capacitor و ابزار آیکون
+      - name: 3. نصب پکیج‌ها، Capacitor و افزونه تمام‌صفحه
         run: |
           bun install
-          bun add @capacitor/core @capacitor/splash-screen
+          bun add @capacitor/core @capacitor/splash-screen @capacitor/status-bar
           bun add -d @capacitor/cli @capacitor/android @capacitor/assets
 
-      - name: 4. تنظیم مسیر نسبی برای اجرای آفلاین
+      - name: 4. غیرفعال کردن زوم و تنظیم مسیر آفلاین
         run: |
           sed -i "s/defineConfig({/defineConfig({\n  base: '.\/',/g" vite.config.ts || true
+          # جایگزینی تگ viewport برای بستن زوم و تمام‌صفحه کردن وب
+          sed -i 's/<meta name="viewport"[^>]*>/<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" \/>/g' index.html || true
 
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید، پشتیبانی اندروید 8 و اعمال آیکون
+      - name: 6. ساخت پروژه اندروید، تمام‌صفحه کردن و اعمال آیکون
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
           
-          # فعال‌سازی نصب روی اندروید 7 و 8 (تغییر minSdkVersion به 24)
+          # پشتیبانی از اندروید 8
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
           
-          # کپی کردن پوشه asset شما به مسیر استاندارد assets برای ساخت آیکون
+          # فعال‌سازی حالت تمام‌صفحه (Fullscreen) در تم اندروید
+          sed -i 's/<\/style>/    <item name="android:windowFullscreen">true<\/item>\n    <\/style>/g' android/app/src/main/res/values/styles.xml || true
+          
+          # اعمال آیکون و اسپلش اسکرین
           if [ -d "asset" ]; then
             mkdir -p assets
             cp -r asset/* assets/

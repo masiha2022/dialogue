@@ -3,7 +3,7 @@ name: Build Offline Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # امکان اجرای دستی از تب Actions
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -29,12 +29,23 @@ jobs:
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید و تولید آیکون و اسپلش
+      - name: 6. ساخت پروژه اندروید، پشتیبانی اندروید 8 و اعمال آیکون
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
-          # اگر پوشه assets در مخزن وجود داشته باشد، آیکون و اسپلش را می‌سازد
-          if [ -d "assets" ]; then npx capacitor-assets generate --android; fi
+          
+          # فعال‌سازی نصب روی اندروید 7 و 8 (تغییر minSdkVersion به 24)
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
+          
+          # کپی کردن پوشه asset شما به مسیر استاندارد assets برای ساخت آیکون
+          if [ -d "asset" ]; then
+            mkdir -p assets
+            cp -r asset/* assets/
+            npx capacitor-assets generate --android
+          elif [ -d "assets" ]; then
+            npx capacitor-assets generate --android
+          fi
+          
           npx cap sync android
 
       - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید

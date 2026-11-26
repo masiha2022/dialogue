@@ -36,7 +36,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: 7. نصب جاوا (JDK 17) مورد نیاز اندروید
+      - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید
         uses: actions/setup-java@v4
         with:
           java-version: '17'

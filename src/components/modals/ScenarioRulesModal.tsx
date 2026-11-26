@@ -32,10 +32,10 @@ export const ScenarioRulesModal: React.FC<ScenarioRulesModalProps> = ({
               <BookOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                قوانین و راهنمای {scenario.name}
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-snug">
+                قوانین {scenario.name}
               </h2>
-              <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{scenario.tagline}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{scenario.tagline}</p>
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Gavel,
   GraduationCap,
+  Phone,
   ShieldCheck,
   SlidersHorizontal,
   Timer,
@@ -111,7 +112,7 @@ const GUIDE_STEPS: GuideStep[] = [
   },
   {
     title: 'گام ۴: تنظیمات',
-    subtitle: 'شخصی‌سازی صدا، تایمر، پس‌زمینه و نصب برنامه',
+    subtitle: 'شخصی‌سازی صدا، تایمر، پس‌زمینه و ظاهر برنامه',
     icon: <SlidersHorizontal className="w-6 h-6 text-violet-400" />,
     accentClass: 'border-violet-500/35 bg-violet-500/12',
     points: [
@@ -122,7 +123,7 @@ const GUIDE_STEPS: GuideStep[] = [
       },
     ],
     proTip:
-      'برای اجرای دائمی و تمام‌صفحه بدون اینترنت روی اندروید و آیفون، از دکمه «نصب» در بالای صفحه اصلی استفاده کنید.',
+      'تمامی سناریوها، فایل‌های صوتی اضافه شده و تنظیمات شما به‌صورت آفلاین روی دستگاه ذخیره می‌شوند و بدون اینترنت در دسترس هستند.',
   },
 ];
 
@@ -154,8 +155,8 @@ export const InAppGuideModal: React.FC<InAppGuideModalProps> = ({
               <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white truncate">
-                راهنمای گام‌به‌گام دیالوگ
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
+                راهنمای دیالوگ
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-300 tabular-nums">
                 گام {toPersianDigits(stepIdx + 1)} از {toPersianDigits(GUIDE_STEPS.length)}
@@ -271,6 +272,22 @@ export const InAppGuideModal: React.FC<InAppGuideModalProps> = ({
               {current.proTip}
             </div>
           </div>
+
+          {isLast && (
+            <div className="rounded-2xl border border-slate-200 dark:border-white/14 bg-slate-50 dark:bg-[#0B0E15] px-4 py-3 flex flex-wrap items-center justify-between gap-2.5">
+              <div className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                سازنده برنامه: <span className="text-amber-700 dark:text-amber-400">کریمی</span>
+              </div>
+              <a
+                href="tel:09128357950"
+                className="min-h-[44px] px-3.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs sm:text-sm inline-flex items-center gap-1.5 transition-colors tabular-nums"
+                dir="ltr"
+              >
+                <Phone className="w-4 h-4 shrink-0" />
+                <span>{toPersianDigits('09128357950')}</span>
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Footer Navigation (Thumb-friendly large buttons) */}

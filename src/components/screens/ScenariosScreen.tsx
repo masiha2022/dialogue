@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import {
   ArrowRight,
   ArrowUpDown,
+  BookMarked,
   BookOpen,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   Download,
   GripVertical,
@@ -34,6 +36,7 @@ interface ScenariosScreenProps {
   onReorderScenarios: (nextScenarios: Scenario[]) => void;
   onOpenTools: () => void;
   onOpenCustomization: () => void;
+  onOpenRoleBank: () => void;
 }
 
 export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
@@ -49,6 +52,7 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
   onReorderScenarios,
   onOpenTools,
   onOpenCustomization,
+  onOpenRoleBank,
 }) => {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -86,8 +90,8 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
   return (
     <div className="relative z-10 min-h-dvh flex flex-col bg-transparent text-slate-900 dark:text-slate-100 pb-24 sm:pb-12 transition-colors">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-30 h-14 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6">
-        <div className="w-full max-w-6xl mx-auto h-full flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 pt-safe bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6">
+        <div className="w-full max-w-6xl mx-auto h-14 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               type="button"
@@ -166,7 +170,31 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
         </div>
       </header>
 
-      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7 flex-1">
+      <main className="w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7 flex-1 space-y-4">
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('tap', hapticEnabled);
+            onOpenRoleBank();
+          }}
+          className="w-full rounded-2xl border border-amber-500/30 bg-white dark:bg-[#121620] hover:border-amber-500/55 px-4 py-3.5 min-h-[60px] flex items-center justify-between gap-3 shadow-sm dark:shadow-none transition-colors cursor-pointer text-right"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl border border-amber-500/35 bg-amber-500/12 flex items-center justify-center shrink-0">
+              <BookMarked className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-snug">
+                بانک نقش‌ها
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                ویرایش یکجای نقش‌ها، نکات بازی و آیکون‌ها
+              </div>
+            </div>
+          </div>
+          <ChevronLeft className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" />
+        </button>
+
         {scenarios.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 dark:border-white/15 bg-white dark:bg-[#121620] p-10 text-center max-w-lg mx-auto my-8">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">
@@ -255,7 +283,7 @@ export const ScenariosScreen: React.FC<ScenariosScreenProps> = ({
                       </div>
 
                       <div className="flex-1 min-w-0 text-right">
-                        <span className="block font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-snug truncate">
+                        <span className="block font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-snug">
                           {scenario.name}
                         </span>
                       </div>

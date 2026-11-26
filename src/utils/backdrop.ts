@@ -9,28 +9,28 @@ export interface HomeBackdropOption {
 export const HOME_BACKDROP_OPTIONS: HomeBackdropOption[] = [
   {
     id: 'logo',
-    label: 'لوگوی کم‌رنگ دیالوگ',
+    label: 'لوگوی دیالوگ',
     subtitle: 'پیش‌فرض برند',
   },
   {
     id: 'crimson-moon',
-    label: 'ماه سرخ مافیا',
+    label: 'ماه سرخ',
     subtitle: 'شب مرموز',
   },
   {
     id: 'city-noir',
-    label: 'افق شهر شب',
+    label: 'شهر شب',
     subtitle: 'فضای نوآر',
   },
   {
     id: 'spotlight',
-    label: 'نور صحنه گفتگو',
+    label: 'نور صحنه',
     subtitle: 'مینیمال مدرن',
   },
   {
     id: 'custom',
-    label: 'تصویر دلخواه از گوشی',
-    subtitle: 'انتخاب از گالری',
+    label: 'تصویر دلخواه',
+    subtitle: 'از گالری',
   },
 ];
 

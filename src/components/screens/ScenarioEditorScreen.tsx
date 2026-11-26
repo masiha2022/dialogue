@@ -409,6 +409,7 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
     id: initialScenario?.id ?? generateLocalId('scenario'),
     name: scenarioName.trim() || 'سناریوی بدون نام',
     tagline: tagline.trim() || 'سناریوی اختصاصی در سه سطح پایه، پیشرفته و فوق پیشرفته',
+    visualTheme: initialScenario?.visualTheme,
     tiers,
     rules: {
       overview: overview.trim(),
@@ -471,7 +472,7 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
   return (
     <div className="relative z-10 min-h-dvh flex flex-col bg-transparent pb-28 sm:pb-12 transition-colors">
       {/* Sticky Top Bar */}
-      <header className="sticky top-0 z-30 h-14 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 px-4 sm:px-6 flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 pt-safe min-h-[calc(3.5rem+env(safe-area-inset-top))] py-1 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 px-4 sm:px-6 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -481,8 +482,8 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
           >
             <ArrowRight className="w-5 h-5" />
           </button>
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
-            {isEditing ? 'ویرایش سناریو' : 'ساخت سناریو جدید'}
+          <h1 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 leading-snug">
+            {isEditing ? 'ویرایش سناریو' : 'سناریو جدید'}
           </h1>
         </div>
 
@@ -770,8 +771,8 @@ export const ScenarioEditorScreen: React.FC<ScenarioEditorScreenProps> = ({
                       >
                         <RoleIcon name={role.icon} className="w-5 h-5" style={{ color: readableColor }} />
                       </button>
-                      <div className="min-w-0 flex items-center gap-2">
-                        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 truncate">
+                      <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
                           {role.name}
                         </h3>
                         <span className="text-xs font-bold text-amber-700 dark:text-amber-300 tabular-nums shrink-0">

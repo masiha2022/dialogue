@@ -6,6 +6,7 @@ import {
   LastMoveCard,
   ModeratorMatchState,
   RevealMode,
+  RoleBankItem,
   SavedRoster,
   Scenario,
 } from '../types/game';
@@ -44,6 +45,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   sniperPenaltyOnCitizen: true,
   homeBackdropId: 'logo',
   homeBackdropCustomDataUrl: '',
+  cardVisualTheme: 'auto',
 };
 
 const LEGACY_TIMER_PRESETS = [20, 30, 45, 60, 90];
@@ -89,6 +91,7 @@ export function loadAppPreferences(): AppPreferences {
         !hasLegacyPresets
           ? parsed.customTimerPresets
           : DEFAULT_APP_PREFERENCES.customTimerPresets,
+      cardVisualTheme: parsed.cardVisualTheme ?? DEFAULT_APP_PREFERENCES.cardVisualTheme,
     };
   } catch {
     return DEFAULT_APP_PREFERENCES;
@@ -281,5 +284,26 @@ export function saveGuideDismissed(dismissed: boolean): void {
     }
   } catch {
     // ignore
+  }
+}
+
+const ROLE_BANK_KEY = 'ravi_naghsh_role_bank_v1';
+
+export function loadCustomRoleBank(): RoleBankItem[] {
+  try {
+    const raw = window.localStorage.getItem(ROLE_BANK_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RoleBankItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomRoleBank(items: RoleBankItem[]): void {
+  try {
+    window.localStorage.setItem(ROLE_BANK_KEY, JSON.stringify(items));
+  } catch {
+    // ignore quota errors gracefully
   }
 }

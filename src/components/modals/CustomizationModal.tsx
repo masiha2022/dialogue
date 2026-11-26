@@ -4,6 +4,7 @@ import {
   Check,
   Image as ImageIcon,
   Music,
+  Palette,
   Pause,
   Play,
   Plus,
@@ -25,7 +26,13 @@ import {
 import { deleteCustomAudioFile, saveCustomAudioFile } from '../../utils/audioStorage';
 import { compressImageFileToDataUrl, HOME_BACKDROP_OPTIONS } from '../../utils/backdrop';
 import { triggerHaptic } from '../../utils/haptics';
-import { generateLocalId, toPersianDigits } from '../../utils/persian';
+import { generateLocalId, hexToRgba, toPersianDigits } from '../../utils/persian';
+import {
+  getThemePatternBackground,
+  getThemePatternSize,
+  SCENARIO_THEME_OPTIONS,
+  SCENARIO_VISUAL_THEMES,
+} from '../../utils/scenarioTheme';
 import {
   ALARM_SOUND_OPTIONS,
   nightAmbient,
@@ -592,6 +599,94 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
               </div>
             </section>
 
+            {/* Card Visual Theme */}
+            <section className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/8">
+              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                      <Palette className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>تم کارت‌های نقش</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      طرح و رنگ کارت‌ها و صفحه توزیع نقش
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  {SCENARIO_THEME_OPTIONS.map((opt) => {
+                    const isDark = preferences.themeMode !== 'light';
+                    const isSelected = (preferences.cardVisualTheme ?? 'auto') === opt.id;
+                    const previewTheme =
+                      opt.id === 'auto'
+                        ? SCENARIO_VISUAL_THEMES.godfather
+                        : SCENARIO_VISUAL_THEMES[opt.id];
+                    const previewAccent = isDark
+                      ? previewTheme.accentHex
+                      : previewTheme.lightAccentHex;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('tap', preferences.hapticFeedbackEnabled);
+                          update({ cardVisualTheme: opt.id });
+                        }}
+                        className={`rounded-xl border p-2 text-right flex flex-col gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'ring-2 bg-white dark:bg-[#151A26] text-slate-950 dark:text-white font-extrabold shadow-sm'
+                            : 'border-slate-200 dark:border-white/10 bg-white/75 dark:bg-[#121620] hover:bg-white dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-semibold'
+                        }`}
+                        style={
+                          isSelected
+                            ? {
+                                borderColor: previewAccent,
+                                boxShadow: `0 0 0 2px ${hexToRgba(previewAccent, 0.25)}`,
+                              }
+                            : undefined
+                        }
+                      >
+                        <div
+                          className="w-full h-9 rounded-lg relative overflow-hidden border"
+                          style={{
+                            background: isDark
+                              ? previewTheme.darkCardBg
+                              : previewTheme.lightCardBg,
+                            borderColor: hexToRgba(previewAccent, 0.45),
+                          }}
+                        >
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              backgroundImage: getThemePatternBackground(previewTheme, isDark),
+                              backgroundSize: getThemePatternSize(previewTheme.pattern),
+                            }}
+                          />
+                          {isSelected && (
+                            <span
+                              className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full flex items-center justify-center text-slate-950 shadow"
+                              style={{ backgroundColor: previewAccent }}
+                            >
+                              <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                            </span>
+                          )}
+                          {opt.id === 'auto' && (
+                            <span className="absolute bottom-1 right-1.5 text-[9px] font-extrabold text-amber-700 dark:text-amber-300">
+                              هوشمند
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] leading-snug text-center w-full">
+                          {opt.id === 'auto' ? 'خودکار' : opt.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
             {/* Backdrop */}
             <section className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/8">
               <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-slate-50 dark:bg-[#090B10] p-4 space-y-4">
@@ -599,10 +694,10 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                       <ImageIcon className="w-4 h-4 text-[#C4161C] dark:text-amber-400" />
-                      <span>انتخاب تصویر پس‌زمینه فراگیر</span>
+                      <span>تصویر پس‌زمینه</span>
                     </h3>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      تصویر انتخابی به‌صورت تمام‌صفحه در کل برنامه اعمال می‌شود.
+                      نمایش تمام‌صفحه در کل برنامه
                     </p>
                   </div>
 
@@ -663,10 +758,10 @@ export const CustomizationModal: React.FC<CustomizationModalProps> = ({
                           )}
                         </div>
                         <div className="px-3 py-2 bg-white dark:bg-[#121620]">
-                          <div className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+                          <div className="text-xs font-extrabold text-slate-900 dark:text-white leading-snug">
                             {opt.label}
                           </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
                             {opt.subtitle}
                           </div>
                         </div>

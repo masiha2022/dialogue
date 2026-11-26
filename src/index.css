@@ -12,11 +12,20 @@
 
   html,
   body {
+    min-height: 100%;
+    min-height: 100dvh;
+    width: 100%;
+    overflow-x: clip;
     font-family: 'Vazirmatn', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
     background-color: #F4F5F7;
     color: #0F172A;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: contain;
+  }
+
+  #root {
+    min-height: 100dvh;
+    width: 100%;
   }
 
   .dark html,
@@ -36,6 +45,14 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pt-safe-page {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
 }
 
 .pb-safe {

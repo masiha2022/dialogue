@@ -17,7 +17,16 @@ import {
   ScenarioTierKey,
 } from '../../types/game';
 import { triggerHaptic } from '../../utils/haptics';
-import { getReadableRoleColor, getTotalRoleCount, hexToRgba, toPersianDigits } from '../../utils/persian';
+import {
+  getReadableRoleColor,
+  getTotalRoleCount,
+  hexToRgba,
+  toPersianDigits,
+} from '../../utils/persian';
+import {
+  getScenarioStageBackground,
+  resolveScenarioVisualTheme,
+} from '../../utils/scenarioTheme';
 import { RoleEditModal } from '../modals/RoleEditModal';
 import { RoleIcon } from '../RoleIcon';
 
@@ -132,12 +141,20 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
     );
   };
 
+  const resolvedTheme = resolveScenarioVisualTheme(
+    preferences.cardVisualTheme,
+    scenario.name
+  );
   const isDark = preferences.themeMode !== 'light';
+  const stageBackground = getScenarioStageBackground(resolvedTheme, isDark);
 
   return (
-    <div className="relative z-10 min-h-dvh flex flex-col bg-transparent pb-28 sm:pb-10 transition-colors">
+    <div
+      className="relative z-10 min-h-dvh flex flex-col pb-28 sm:pb-10 transition-colors"
+      style={{ background: stageBackground }}
+    >
       {/* Compact Sticky Top Bar */}
-      <header className="sticky top-0 z-30 h-15 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/12 px-3 sm:px-6 flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 pt-safe min-h-[calc(3.75rem+env(safe-area-inset-top))] py-1.5 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/12 px-3 sm:px-6 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
@@ -147,7 +164,7 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
           >
             <ArrowRight className="w-5 h-5" />
           </button>
-          <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white truncate">
+          <h1 className="text-sm sm:text-lg font-extrabold text-slate-900 dark:text-white leading-snug">
             {scenario.name}
           </h1>
         </div>
@@ -326,8 +343,8 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                       <RoleIcon name={role.icon} className="w-4 h-4" style={{ color: readableColor }} />
                     </button>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
-                        <span className="truncate">{role.name}</span>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug flex items-center gap-1.5 flex-wrap">
+                        <span>{role.name}</span>
                         <button
                           type="button"
                           onClick={() => setCustomizingRole(role)}
@@ -341,7 +358,7 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="w-[80px] flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => updateRoleCount(role.id, -1)}
@@ -351,7 +368,7 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">
+                    <span className="w-[20px] text-center text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                       {toPersianDigits(role.count)}
                     </span>
                     <button

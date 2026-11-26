@@ -201,7 +201,7 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
   return (
     <div className="relative z-10 min-h-dvh flex flex-col bg-transparent pb-10 pb-safe transition-colors">
       {/* Compact High-Contrast Top Bar */}
-      <header className="sticky top-0 z-30 h-15 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/12 px-3 sm:px-6 flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-30 pt-safe min-h-[calc(3.75rem+env(safe-area-inset-top))] py-1.5 bg-white/85 dark:bg-[#090B10]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/12 px-3 sm:px-6 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             type="button"
@@ -212,7 +212,7 @@ export const ModeratorToolsScreen: React.FC<ModeratorToolsScreenProps> = ({
             <ArrowRight className="w-5 h-5" />
           </button>
           <div className="min-w-0">
-            <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+            <h1 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-snug">
               تایمر و صدا {session ? `· ${session.scenarioName}` : ''}
             </h1>
           </div>

@@ -10,11 +10,13 @@ import { ImportScenarioModal } from './components/modals/ImportScenarioModal';
 import { InAppGuideModal } from './components/modals/InAppGuideModal';
 import { ScenarioRulesModal } from './components/modals/ScenarioRulesModal';
 import { ShareScenarioModal } from './components/modals/ShareScenarioModal';
+import { CafeAboutScreen } from './components/screens/CafeAboutScreen';
 import { DistributionCompleteScreen } from './components/screens/DistributionCompleteScreen';
 import { GameSetupScreen } from './components/screens/GameSetupScreen';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { ModeratorReadyScreen } from './components/screens/ModeratorReadyScreen';
 import { ModeratorToolsScreen } from './components/screens/ModeratorToolsScreen';
+import { RoleBankScreen } from './components/screens/RoleBankScreen';
 import { RoleRevealScreen } from './components/screens/RoleRevealScreen';
 import { ScenarioEditorScreen } from './components/screens/ScenarioEditorScreen';
 import { ScenariosScreen } from './components/screens/ScenariosScreen';
@@ -23,6 +25,7 @@ import {
   AppPreferences,
   AppScreen,
   RevealMode,
+  RoleBankItem,
   RoleDefinition,
   Scenario,
   ScenarioTierKey,
@@ -31,10 +34,12 @@ import { buildShuffledDeck, generateLocalId } from './utils/persian';
 import {
   loadActiveSession,
   loadAppPreferences,
+  loadCustomRoleBank,
   loadScenarios,
   mergeDefaultLibrary,
   saveActiveSession,
   saveAppPreferences,
+  saveCustomRoleBank,
   saveGuideDismissed,
   saveModeratorMatchState,
   saveScenarios,
@@ -42,6 +47,7 @@ import {
 
 export default function App() {
   const [scenarios, setScenarios] = useState<Scenario[]>(() => loadScenarios());
+  const [customBankRoles, setCustomBankRoles] = useState<RoleBankItem[]>(() => loadCustomRoleBank());
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadAppPreferences());
   const [screen, setScreen] = useState<AppScreen>('home');
   const [toolsReturnScreen, setToolsReturnScreen] = useState<'home' | 'scenarios' | 'complete'>('home');
@@ -67,6 +73,10 @@ export default function App() {
   useEffect(() => {
     saveScenarios(scenarios);
   }, [scenarios]);
+
+  useEffect(() => {
+    saveCustomRoleBank(customBankRoles);
+  }, [customBankRoles]);
 
   useEffect(() => {
     saveAppPreferences(preferences);
@@ -186,6 +196,138 @@ export default function App() {
 
   const handleReorderScenarios = (nextScenarios: Scenario[]) => {
     setScenarios(nextScenarios);
+  };
+
+  const handleSaveRoleFromBank = (
+    originalName: string | null,
+    updated: RoleDefinition,
+    syncAcrossScenarios: boolean,
+    bankItemId?: string
+  ) => {
+    const now = Date.now();
+    const targetNameKey = (originalName ?? updated.name).trim();
+
+    setCustomBankRoles((prev) => {
+      const existingIndex = prev.findIndex(
+        (item) =>
+          (bankItemId && item.id === bankItemId) ||
+          item.name.trim() === targetNameKey ||
+          item.name.trim() === updated.name.trim()
+      );
+      const nextItem: RoleBankItem = {
+        id:
+          existingIndex !== -1
+            ? prev[existingIndex].id
+            : bankItemId ?? generateLocalId('bank-role'),
+        name: updated.name,
+        description: updated.description,
+        roleplayTip: updated.roleplayTip,
+        color: updated.color,
+        icon: updated.icon,
+        team: updated.team,
+        inquiryOverride: updated.inquiryOverride,
+        updatedAt: now,
+      };
+      if (existingIndex !== -1) {
+        return prev.map((item, idx) => (idx === existingIndex ? nextItem : item));
+      }
+      return [nextItem, ...prev];
+    });
+
+    if (syncAcrossScenarios && originalName) {
+      const normalizedOriginal = originalName.trim();
+      setScenarios((prev) =>
+        prev.map((scenario) => {
+          let scenarioChanged = false;
+          const updateTier = (tier: Scenario['tiers']['basic']) => {
+            let tierChanged = false;
+            const nextRoles = tier.roles.map((r) => {
+              if (r.name.trim() !== normalizedOriginal) return r;
+              tierChanged = true;
+              scenarioChanged = true;
+              return {
+                ...r,
+                name: updated.name,
+                description: updated.description,
+                roleplayTip: updated.roleplayTip,
+                color: updated.color,
+                icon: updated.icon,
+                team: updated.team,
+                inquiryOverride: updated.inquiryOverride,
+              };
+            });
+            return tierChanged ? { ...tier, roles: nextRoles } : tier;
+          };
+
+          const basic = updateTier(scenario.tiers.basic);
+          const advanced = updateTier(scenario.tiers.advanced);
+          const expert = updateTier(scenario.tiers.expert);
+
+          if (!scenarioChanged) return scenario;
+          return {
+            ...scenario,
+            updatedAt: now,
+            tiers: { basic, advanced, expert },
+          };
+        })
+      );
+    }
+  };
+
+  const handleDeleteBankRole = (bankItemId: string) => {
+    setCustomBankRoles((prev) => prev.filter((item) => item.id !== bankItemId));
+  };
+
+  const handleAddRoleToScenario = (
+    role: RoleDefinition,
+    scenarioId: string,
+    tierKey: ScenarioTierKey
+  ) => {
+    const now = Date.now();
+    setScenarios((prev) =>
+      prev.map((scenario) => {
+        if (scenario.id !== scenarioId) return scenario;
+        const targetTier = scenario.tiers[tierKey];
+        const existingIndex = targetTier.roles.findIndex(
+          (r) => r.name.trim() === role.name.trim()
+        );
+        const nextRoles =
+          existingIndex !== -1
+            ? targetTier.roles.map((r, idx) =>
+                idx === existingIndex
+                  ? {
+                      ...r,
+                      count: Math.max(1, r.count + 1),
+                      description: role.description,
+                      roleplayTip: role.roleplayTip,
+                      color: role.color,
+                      icon: role.icon,
+                      team: role.team,
+                      inquiryOverride: role.inquiryOverride,
+                    }
+                  : r
+              )
+            : [
+                ...targetTier.roles,
+                {
+                  ...role,
+                  id: generateLocalId('role'),
+                  count: 1,
+                },
+              ];
+        return {
+          ...scenario,
+          updatedAt: now,
+          tiers: {
+            ...scenario.tiers,
+            [tierKey]: {
+              ...targetTier,
+              roles: nextRoles,
+            },
+          },
+        };
+      })
+    );
   };
 
   const handleStartGameSetup = (scenario: Scenario) => {
@@ -319,6 +461,18 @@ export default function App() {
             setScreen('tools');
           }}
           onOpenCustomization={() => setShowCustomizationModal(true)}
+          onOpenRoleBank={() => setScreen('role-bank')}
+        />
+      ) : screen === 'role-bank' ? (
+        <RoleBankScreen
+          scenarios={scenarios}
+          customBankRoles={customBankRoles}
+          isDark={preferences.themeMode !== 'light'}
+          hapticEnabled={preferences.hapticFeedbackEnabled}
+          onBack={() => setScreen('scenarios')}
+          onSaveRole={handleSaveRoleFromBank}
+          onDeleteBankRole={handleDeleteBankRole}
+          onAddRoleToScenario={handleAddRoleToScenario}
         />
       ) : screen === 'setup' && selectedSetupScenario ? (
         <GameSetupScreen
@@ -334,6 +488,8 @@ export default function App() {
           scenarioName={activeSession.scenarioName}
           tierLabel={activeSession.tierLabel}
           playerCount={activeSession.playerCount}
+          visualTheme={preferences.cardVisualTheme}
+          isDark={preferences.themeMode !== 'light'}
           hapticEnabled={preferences.hapticFeedbackEnabled}
           onStartReveal={() => setScreen('reveal')}
           onReshuffle={handleReshuffleSession}
@@ -345,6 +501,7 @@ export default function App() {
           deck={activeSession.deck}
           scenarioName={activeSession.scenarioName}
           tierLabel={activeSession.tierLabel}
+          visualTheme={preferences.cardVisualTheme}
           revealMode={activeSession.revealMode}
           preferences={preferences}
           onComplete={() => {
@@ -356,6 +513,7 @@ export default function App() {
       ) : screen === 'complete' && activeSession ? (
         <DistributionCompleteScreen
           session={activeSession}
+          visualTheme={preferences.cardVisualTheme}
           hapticEnabled={preferences.hapticFeedbackEnabled}
           isDark={preferences.themeMode !== 'light'}
           onGoHome={() => {
@@ -382,6 +540,11 @@ export default function App() {
             setShowGuideModal(true);
           }}
         />
+      ) : screen === 'cafe-about' ? (
+        <CafeAboutScreen
+          hapticEnabled={preferences.hapticFeedbackEnabled}
+          onBack={() => setScreen('home')}
+        />
       ) : (
         <HomeScreen
           activeSession={activeSession}
@@ -406,6 +569,7 @@ export default function App() {
             setShowGuideModal(true);
           }}
           onOpenCustomization={() => setShowCustomizationModal(true)}
+          onOpenCafeAbout={() => setScreen('cafe-about')}
         />
       )}
 

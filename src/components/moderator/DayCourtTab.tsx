@@ -144,7 +144,7 @@ export const DayCourtTab: React.FC<DayCourtTabProps> = ({
                     {toPersianDigits(p.playerNumber)}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">{p.playerName}</div>
+                    <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-snug">{p.playerName}</div>
                     <div className="text-xs tabular-nums">
                       {reachesExit ? (
                         <span className="text-rose-700 dark:text-rose-200 font-extrabold">حدنصاب خروج کامل شده</span>

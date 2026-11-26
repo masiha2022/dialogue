@@ -1,13 +1,20 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, CheckCircle2, Eye, EyeOff, Home, RotateCcw, Timer } from 'lucide-react';
-import { ActiveGameSession } from '../../types/game';
+import { ActiveGameSession, ScenarioVisualThemeId } from '../../types/game';
 import { triggerHaptic } from '../../utils/haptics';
 import { getReadableRoleColor, hexToRgba, toPersianDigits } from '../../utils/persian';
+import {
+  getScenarioStageBackground,
+  getThemePatternBackground,
+  getThemePatternSize,
+  resolveScenarioVisualTheme,
+} from '../../utils/scenarioTheme';
 import { RoleIcon } from '../RoleIcon';
 
 interface DistributionCompleteScreenProps {
   session: ActiveGameSession;
+  visualTheme?: ScenarioVisualThemeId;
   hapticEnabled?: boolean;
   isDark?: boolean;
   onGoHome: () => void;
@@ -20,6 +27,7 @@ const HOLD_REVEAL_MS = 1200;
 
 export const DistributionCompleteScreen: React.FC<DistributionCompleteScreenProps> = ({
   session,
+  visualTheme,
   hapticEnabled = true,
   isDark = true,
   onGoHome,
@@ -31,6 +39,16 @@ export const DistributionCompleteScreen: React.FC<DistributionCompleteScreenProp
   const [holdProgress, setHoldProgress] = useState(0);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
+
+  const themeConfig = resolveScenarioVisualTheme(
+    visualTheme ?? session.visualTheme,
+    session.scenarioName
+  );
+  const themeAccent = isDark ? themeConfig.accentHex : themeConfig.lightAccentHex;
+  const stageBackground = getScenarioStageBackground(themeConfig, isDark);
+  const cardBackground = isDark ? themeConfig.darkCardBg : themeConfig.lightCardBg;
+  const patternBackground = getThemePatternBackground(themeConfig, isDark);
+  const patternSize = getThemePatternSize(themeConfig.pattern);
 
   const handleHoldStart = () => {
     if (showModeratorList) {
@@ -64,27 +82,45 @@ export const DistributionCompleteScreen: React.FC<DistributionCompleteScreenProp
   };
 
   return (
-    <div className="relative z-10 min-h-dvh flex flex-col justify-center bg-transparent px-4 py-6 pb-safe sm:px-6 sm:py-10 transition-colors">
+    <div
+      className="relative z-10 min-h-dvh flex flex-col justify-center px-4 pt-safe-page py-6 pb-safe sm:px-6 sm:py-10 transition-colors"
+      style={{ background: stageBackground }}
+    >
       <div className="w-full max-w-2xl mx-auto flex flex-col gap-3.5 sm:gap-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#121620] p-6 sm:p-8 text-center shadow-sm dark:shadow-none"
+          className="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-center shadow-sm dark:shadow-none"
+          style={{
+            background: cardBackground,
+            border: `2px solid ${hexToRgba(themeAccent, isDark ? 0.42 : 0.32)}`,
+            boxShadow: isDark
+              ? `0 24px 60px -22px ${hexToRgba(themeConfig.accentHex, 0.32)}`
+              : `0 18px 46px -20px ${hexToRgba(themeConfig.lightAccentHex, 0.2)}`,
+          }}
         >
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 flex items-center justify-center mx-auto mb-5">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage: patternBackground,
+              backgroundSize: patternSize,
+            }}
+          />
+          <div className="relative z-10 w-16 h-16 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 text-balance mb-2">
+          <h1 className="relative z-10 text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-slate-100 text-balance mb-2">
             نقش‌ها توزیع شد
           </h1>
 
-          <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-5 tabular-nums">
+          <p className="relative z-10 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 max-w-md mx-auto mb-5 tabular-nums">
             {session.scenarioName} · {toPersianDigits(session.playerCount)} بازیکن
           </p>
 
-          <div className="pt-4 border-t border-slate-200 dark:border-white/8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="relative z-10 pt-4 border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               type="button"
               onPointerDown={handleHoldStart}
@@ -131,7 +167,7 @@ export const DistributionCompleteScreen: React.FC<DistributionCompleteScreenProp
                     key={item.playerNumber}
                     className="flex items-center justify-between gap-3 py-2 px-3 rounded-xl bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5"
                   >
-                    <span className="text-sm font-medium text-slate-800 dark:text-slate-300 tabular-nums truncate">
+                    <span className="text-sm font-medium text-slate-800 dark:text-slate-300 tabular-nums leading-snug">
                       {item.playerName || `صندلی ${toPersianDigits(item.playerNumber)}`}
                     </span>
                     <span

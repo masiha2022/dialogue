@@ -1,4 +1,4 @@
-export type RoleIconName =
+export type BuiltInRoleIconName =
   | 'crown'
   | 'skull'
   | 'search'
@@ -30,7 +30,35 @@ export type RoleIconName =
   | 'syringe'
   | 'radio'
   | 'footprints'
-  | 'hourglass';
+  | 'hourglass'
+  | 'award'
+  | 'ban'
+  | 'bird'
+  | 'briefcase'
+  | 'cat'
+  | 'clapperboard'
+  | 'coins'
+  | 'dog'
+  | 'fingerprint'
+  | 'flashlight'
+  | 'glasses'
+  | 'handshake'
+  | 'heart-crack'
+  | 'martini'
+  | 'radar'
+  | 'scroll-text'
+  | 'shield-alert'
+  | 'sword'
+  | 'trophy'
+  | 'user-check'
+  | 'user-x'
+  | 'wand-sparkles'
+  | 'wind';
+
+export type RoleIconName =
+  | BuiltInRoleIconName
+  | `emoji:${string}`
+  | `img:${string}`;
 
 export type ScenarioTierKey = 'basic' | 'advanced' | 'expert';
 
@@ -71,6 +99,17 @@ export type HomeBackdropId =
   | 'spotlight'
   | 'custom';
 
+export type ScenarioVisualThemeId =
+  | 'auto'
+  | 'classic-noir'
+  | 'godfather'
+  | 'zodiac'
+  | 'nato'
+  | 'crimson'
+  | 'emerald-casino'
+  | 'cyber-neon'
+  | 'desert-western';
+
 export interface AppPreferences {
   nightTrackId: NightTrackId;
   nightCustomTrackName: string;
@@ -96,6 +135,7 @@ export interface AppPreferences {
   sniperPenaltyOnCitizen: boolean;
   homeBackdropId: HomeBackdropId;
   homeBackdropCustomDataUrl: string;
+  cardVisualTheme: ScenarioVisualThemeId;
 }
 
 export interface RoleDefinition {
@@ -103,10 +143,23 @@ export interface RoleDefinition {
   name: string;
   count: number;
   description: string;
+  roleplayTip?: string;
   color: string;
   icon: RoleIconName;
   team?: RoleTeam;
   inquiryOverride?: 'auto' | 'positive' | 'negative';
+}
+
+export interface RoleBankItem {
+  id: string;
+  name: string;
+  description: string;
+  roleplayTip?: string;
+  color: string;
+  icon: RoleIconName;
+  team?: RoleTeam;
+  inquiryOverride?: 'auto' | 'positive' | 'negative';
+  updatedAt: number;
 }
 
 export interface ScenarioTier {
@@ -129,6 +182,7 @@ export interface Scenario {
   id: string;
   name: string;
   tagline: string;
+  visualTheme?: ScenarioVisualThemeId;
   tiers: Record<ScenarioTierKey, ScenarioTier>;
   rules: ScenarioRules;
   isBuiltIn?: boolean;
@@ -166,7 +220,9 @@ export interface AssignedPlayerRole {
 
 export type AppScreen =
   | 'home'
+  | 'cafe-about'
   | 'scenarios'
+  | 'role-bank'
   | 'editor'
   | 'setup'
   | 'ready'
@@ -178,6 +234,7 @@ export interface ActiveGameSession {
   id: string;
   scenarioId: string;
   scenarioName: string;
+  visualTheme?: ScenarioVisualThemeId;
   tierKey: ScenarioTierKey;
   tierLabel: string;
   playerCount: number;

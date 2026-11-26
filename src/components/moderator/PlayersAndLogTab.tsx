@@ -285,7 +285,7 @@ export const PlayersAndLogTab: React.FC<PlayersAndLogTabProps> = ({
 
                   <div className="min-w-0">
                     <div
-                      className={`text-sm font-bold truncate tabular-nums ${
+                      className={`text-sm font-bold leading-snug tabular-nums ${
                         p.isAlive
                           ? 'text-slate-900 dark:text-slate-100'
                           : 'text-slate-500 dark:text-slate-400 line-through'
@@ -295,7 +295,7 @@ export const PlayersAndLogTab: React.FC<PlayersAndLogTabProps> = ({
                     </div>
                     {showRoles && dealt ? (
                       <div
-                        className="text-xs font-bold flex items-center gap-1 mt-0.5 truncate"
+                        className="text-xs font-bold flex items-center gap-1 mt-0.5 flex-wrap"
                         style={{ color: roleColor }}
                       >
                         <RoleIcon
@@ -303,7 +303,7 @@ export const PlayersAndLogTab: React.FC<PlayersAndLogTabProps> = ({
                           className="w-3.5 h-3.5 shrink-0"
                           style={{ color: roleColor }}
                         />
-                        <span className="truncate">{dealt.role.name}</span>
+                        <span>{dealt.role.name}</span>
                       </div>
                     ) : (
                       <div className="text-[11px] text-slate-500 dark:text-slate-400">

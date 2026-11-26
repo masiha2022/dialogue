@@ -54,6 +54,7 @@ function resolveColorInput(raw: string): string {
 }
 
 function iconNameToPersianLabel(icon: RoleIconName): string {
+  if (icon.startsWith('emoji:') || icon.startsWith('img:')) return icon;
   const found = ROLE_ICON_OPTIONS.find((opt) => opt.name === icon);
   return found ? found.label : icon;
 }
@@ -61,6 +62,8 @@ function iconNameToPersianLabel(icon: RoleIconName): string {
 function resolveIconInput(raw: string): RoleIconName {
   const cleaned = raw.trim();
   if (!cleaned) return 'user';
+  if (cleaned.startsWith('emoji:')) return cleaned as RoleIconName;
+  if (cleaned.startsWith('img:')) return cleaned as RoleIconName;
   const byName = ROLE_ICON_OPTIONS.find((opt) => opt.name === cleaned);
   if (byName) return byName.name;
   const byLabel = ROLE_ICON_OPTIONS.find((opt) => opt.label === cleaned);

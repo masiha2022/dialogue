@@ -1,4 +1,4 @@
-name: Build Offline Android APK
+name: Build Official Release (APK & AAB)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  build-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
           sed -i '/://googleapis.com' index.html || true
           sed -i '/://gstatic.com' index.html || true
           
-          # تزریق استایل فونت آفلاین وزیرمتن (با حفظ امکان تایپ روان در input ها)
+          # تزریق استایل فونت آفلاین وزیرمتن
           cat << 'EOF' > custom-offline.css
           <style>
             @font-face {
@@ -68,15 +68,17 @@ jobs:
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید، تمام‌صفحه هوشمند بعد از کیبورد و اعمال آیکون
+      - name: 6. ساخت پروژه اندروید، تنظیمات SDK و تمام‌صفحه هوشمند
         run: |
-          npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
+          npx cap init "گرداننده مافیا" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
           
-          # پشتیبانی از اندروید 8 (API 24)
+          # پشتیبانی از اندروید 8 (minSdk 24) و رعایت قانون گوگل پلی (targetSdk 36)
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
+          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/g' android/variables.gradle || true
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/g' android/variables.gradle || true
           
-          # تنظیم رفتار کیبورد در AndroidManifest برای جلوگیری از بهم ریختن صفحه
+          # تنظیم رفتار کیبورد در AndroidManifest
           sed -i 's/android:windowSoftInputMode="[^"]*"/android:windowSoftInputMode="adjustPan"/g' android/app/src/main/AndroidManifest.xml || true
           
           # بازنویسی MainActivity.java با شنونده کیبورد برای بازگشت فوری به حالت تمام‌صفحه
@@ -98,7 +100,6 @@ jobs:
 
                   final View decorView = getWindow().getDecorView();
                   
-                  // تشخیص تغییر وضعیت نوارهای سیستم بعد از بسته شدن کیبورد
                   decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
                       @Override
                       public void onSystemUiVisibilityChange(int visibility) {
@@ -108,7 +109,6 @@ jobs:
                       }
                   });
 
-                  // بررسی مداوم تغییر ارتفاع صفحه هنگام باز و بسته شدن کیبورد
                   decorView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                       @Override
                       public void onGlobalLayout() {
@@ -154,21 +154,53 @@ jobs:
           
           npx cap sync android
 
-      - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید
+      - name: 7. بازیابی کلید امضای دیجیتال و تنظیم Gradle
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/mafia-release.jks
+          
+          cat << 'EOF' >> android/app/build.gradle
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file('mafia-release.jks')
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
+          EOF
+
+      - name: 8. نصب جاوا (JDK 21) مورد نیاز اندروید
         id: setup-java
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: 8. ساخت نهایی فایل APK
+      - name: 9. ساخت نهایی و امضاشده APK و AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.java.home=${{ steps.setup-java.outputs.path }}
+          ./gradlew assembleRelease bundleRelease --no-daemon -Dorg.gradle.java.home=${{ steps.setup-java.outputs.path }}
 
-      - name: 9. آپلود فایل APK برای دانلود
+      - name: 10. آپلود خروجی‌های رسمی برای دانلود
         uses: actions/upload-artifact@v7
         with:
-          name: Mafia-Offline-App
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Mafia-Official-Release
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab

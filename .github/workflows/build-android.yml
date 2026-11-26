@@ -22,10 +22,41 @@ jobs:
           bun add @capacitor/core @capacitor/splash-screen
           bun add -d @capacitor/cli @capacitor/android @capacitor/assets
 
-      - name: 4. غیرفعال کردن زوم و تنظیم مسیر آفلاین
+      - name: 4. تنظیمات آفلاین، ضد زوم و تزریق خودکار فونت وزیرمتن
         run: |
+          # تنظیم مسیر نسبی برای اجرای بدون اینترنت
           sed -i "s/defineConfig({/defineConfig({\n  base: '.\/',/g" vite.config.ts || true
+          
+          # بستن قابلیت زوم و تمام‌صفحه کردن وب
           sed -i 's/<meta name="viewport"[^>]*>/<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" \/>/g' index.html || true
+          
+          # حذف لینک‌های آنلاین گوگل فونت برای جلوگیری از کندی در حالت آفلاین
+          sed -i '/://googleapis.com' index.html || true
+          sed -i '/://gstatic.com' index.html || true
+          
+          # تزریق استایل فونت آفلاین وزیرمتن و جلوگیری از انتخاب متن به index.html
+          cat << 'EOF' > custom-offline.css
+          <style>
+            @font-face {
+              font-family: 'Vazirmatn';
+              src: url('./fonts/Vazirmatn[wght].woff2') format('woff2-variations');
+              font-weight: 100 900;
+              font-style: normal;
+              font-display: swap;
+            }
+            * {
+              font-family: 'Vazirmatn', sans-serif !important;
+              -webkit-user-select: none;
+              user-select: none;
+            }
+            html, body {
+              overscroll-behavior: none;
+              touch-action: pan-x pan-y;
+            }
+          </style>
+          </head>
+          EOF
+          sed -i -e '/<\/head>/{r custom-offline.css' -e 'd}' index.html
 
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
@@ -35,10 +66,10 @@ jobs:
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
           
-          # پشتیبانی از اندروید 8
+          # پشتیبانی از اندروید 8 (API 24)
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
           
-          # بازنویسی کامل MainActivity.java برای مخفی‌سازی قطعی نوار ساعت و باتری
+          # بازنویسی MainActivity.java برای مخفی‌سازی قطعی نوار ساعت و باتری
           MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java")
           cat << 'EOF' > "$MAIN_ACTIVITY"
           package com.masiha.dialogue;

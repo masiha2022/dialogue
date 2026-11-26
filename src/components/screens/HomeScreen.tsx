@@ -133,8 +133,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </section>
         )}
 
-        {/* Centered Start Circle Above Left-to-Right Row: Timer, Guide, Settings, Dialogue */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-9 sm:gap-11 py-4">
+        {/* Centered Start Circle Above Left-to-Right Row: Timer, Guide, Settings, Dialogue (Lower Half) */}
+        <div className="flex-1 flex flex-col items-center justify-end gap-9 sm:gap-11 pt-6 pb-8 sm:pb-12">
           <button
             type="button"
             onClick={handleOpenScenarios}

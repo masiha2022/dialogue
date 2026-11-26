@@ -16,7 +16,7 @@ jobs:
       - name: 2. نصب ابزار Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: 3. نصب پکیج‌ها، Capacitor و افزونه تمام‌صفحه
+      - name: 3. نصب پکیج‌ها، Capacitor و ابزار آیکون
         run: |
           bun install
           bun add @capacitor/core @capacitor/splash-screen @capacitor/status-bar
@@ -25,13 +25,12 @@ jobs:
       - name: 4. غیرفعال کردن زوم و تنظیم مسیر آفلاین
         run: |
           sed -i "s/defineConfig({/defineConfig({\n  base: '.\/',/g" vite.config.ts || true
-          # جایگزینی تگ viewport برای بستن زوم و تمام‌صفحه کردن وب
           sed -i 's/<meta name="viewport"[^>]*>/<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" \/>/g' index.html || true
 
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید، تمام‌صفحه کردن و اعمال آیکون
+      - name: 6. ساخت پروژه اندروید، تمام‌صفحه واقعی و اعمال آیکون
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
@@ -39,9 +38,14 @@ jobs:
           # پشتیبانی از اندروید 8
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
           
-          # فعال‌سازی حالت تمام‌صفحه (Fullscreen) در تم اندروید
-          sed -i 's/<\/style>/    <item name="android:windowFullscreen">true<\/item>\n    <\/style>/g' android/app/src/main/res/values/styles.xml || true
+          # فعال‌سازی تمام‌صفحه در تم اندروید
+          sed -i 's/<\/style>/    <item name="android:windowFullscreen">true<\/item>\n        <item name="android:windowContentOverlay">@null<\/item>\n    <\/style>/g' android/app/src/main/res/values/styles.xml || true
           
+          # تزریق کد تمام‌صفحه واقعی (مخفی کردن نوار ساعت و باتری) به MainActivity.java
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java")
+          sed -i 's/package com.masiha.dialogue;/package com.masiha.dialogue;\nimport android.os.Bundle;\nimport android.view.View;\nimport android.view.WindowManager;/g' "$MAIN_ACTIVITY"
+          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(Bundle savedInstanceState) {\n    super.onCreate(savedInstanceState);\n    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);\n    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);\n  }/g' "$MAIN_ACTIVITY"
+
           # اعمال آیکون و اسپلش اسکرین
           if [ -d "asset" ]; then
             mkdir -p assets

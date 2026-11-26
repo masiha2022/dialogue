@@ -30,11 +30,11 @@ jobs:
           # بستن قابلیت زوم و تمام‌صفحه کردن وب
           sed -i 's/<meta name="viewport"[^>]*>/<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" \/>/g' index.html || true
           
-          # حذف لینک‌های آنلاین گوگل فونت برای جلوگیری از کندی در حالت آفلاین
+          # حذف لینک‌های آنلاین گوگل فونت
           sed -i '/://googleapis.com' index.html || true
           sed -i '/://gstatic.com' index.html || true
           
-          # تزریق استایل فونت آفلاین وزیرمتن و جلوگیری از انتخاب متن به index.html
+          # تزریق استایل فونت آفلاین وزیرمتن (با حفظ امکان تایپ روان در input ها)
           cat << 'EOF' > custom-offline.css
           <style>
             @font-face {
@@ -49,9 +49,16 @@ jobs:
               -webkit-user-select: none;
               user-select: none;
             }
+            input, textarea {
+              -webkit-user-select: text !important;
+              user-select: text !important;
+            }
             html, body {
               overscroll-behavior: none;
               touch-action: pan-x pan-y;
+              height: 100vh;
+              width: 100vw;
+              overflow-x: hidden;
             }
           </style>
           </head>
@@ -61,7 +68,7 @@ jobs:
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید، تمام‌صفحه قطعی و اعمال آیکون
+      - name: 6. ساخت پروژه اندروید، تمام‌صفحه هوشمند بعد از کیبورد و اعمال آیکون
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
@@ -69,13 +76,17 @@ jobs:
           # پشتیبانی از اندروید 8 (API 24)
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
           
-          # بازنویسی MainActivity.java برای مخفی‌سازی قطعی نوار ساعت و باتری
+          # تنظیم رفتار کیبورد در AndroidManifest برای جلوگیری از بهم ریختن صفحه
+          sed -i 's/android:windowSoftInputMode="[^"]*"/android:windowSoftInputMode="adjustPan"/g' android/app/src/main/AndroidManifest.xml || true
+          
+          # بازنویسی MainActivity.java با شنونده کیبورد برای بازگشت فوری به حالت تمام‌صفحه
           MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java")
           cat << 'EOF' > "$MAIN_ACTIVITY"
           package com.masiha.dialogue;
 
           import android.os.Bundle;
           import android.view.View;
+          import android.view.ViewTreeObserver;
           import android.view.WindowManager;
           import com.getcapacitor.BridgeActivity;
 
@@ -84,6 +95,26 @@ jobs:
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   hideSystemUI();
+
+                  final View decorView = getWindow().getDecorView();
+                  
+                  // تشخیص تغییر وضعیت نوارهای سیستم بعد از بسته شدن کیبورد
+                  decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+                      @Override
+                      public void onSystemUiVisibilityChange(int visibility) {
+                          if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                              hideSystemUI();
+                          }
+                      }
+                  });
+
+                  // بررسی مداوم تغییر ارتفاع صفحه هنگام باز و بسته شدن کیبورد
+                  decorView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                      @Override
+                      public void onGlobalLayout() {
+                          hideSystemUI();
+                      }
+                  });
               }
 
               @Override

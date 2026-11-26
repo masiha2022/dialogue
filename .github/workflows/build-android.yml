@@ -154,10 +154,17 @@ jobs:
           
           npx cap sync android
 
-      - name: 7. بازیابی کلید امضای دیجیتال و تنظیم Gradle
+      - name: 7. تنظیم خودکار شماره نسخه، بازیابی کلید امضا و تنظیم Gradle
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
+          # افزایش خودکار شماره نسخه بر اساس شماره اجرای گیت‌هاب
+          BUILD_NUM=${{ github.run_number }}
+          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUM/g" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUM\"/g" android/app/build.gradle
+          echo "نسخه جدید با کد $BUILD_NUM و نام 1.0.$BUILD_NUM تنظیم شد."
+
+          # بازیابی فایل کلید امضای دیجیتال
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/mafia-release.jks
           
           cat << 'EOF' >> android/app/build.gradle
@@ -200,7 +207,7 @@ jobs:
       - name: 10. آپلود خروجی‌های رسمی برای دانلود
         uses: actions/upload-artifact@v7
         with:
-          name: Mafia-Official-Release
+          name: Mafia-Official-Release-v1.0.${{ github.run_number }}
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             android/app/build/outputs/bundle/release/app-release.aab

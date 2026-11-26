@@ -3,7 +3,7 @@ name: Build Offline Android APK
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # امکان اجرای دستی از تب Actions
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -16,11 +16,11 @@ jobs:
       - name: 2. نصب ابزار Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: 3. نصب پکیج‌ها و افزودن Capacitor
+      - name: 3. نصب پکیج‌ها، Capacitor و ابزار آیکون
         run: |
           bun install
-          bun add @capacitor/core
-          bun add -d @capacitor/cli @capacitor/android
+          bun add @capacitor/core @capacitor/splash-screen
+          bun add -d @capacitor/cli @capacitor/android @capacitor/assets
 
       - name: 4. تنظیم مسیر نسبی برای اجرای آفلاین
         run: |
@@ -29,10 +29,12 @@ jobs:
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید و همگام‌سازی فایل‌ها
+      - name: 6. ساخت پروژه اندروید و تولید آیکون و اسپلش
         run: |
-          npx cap init "Mafia Helper" "com.masiha.dialogue" --web-dir=dist
+          npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
+          # تولید خودکار تمام سایزهای آیکون و اسپلش اسکرین از پوشه assets
+          npx capacitor-assets generate --android
           npx cap sync android
 
       - name: 7. نصب جاوا (JDK 21) مورد نیاز اندروید

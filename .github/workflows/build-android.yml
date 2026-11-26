@@ -19,7 +19,7 @@ jobs:
       - name: 3. نصب پکیج‌ها، Capacitor و ابزار آیکون
         run: |
           bun install
-          bun add @capacitor/core @capacitor/splash-screen @capacitor/status-bar
+          bun add @capacitor/core @capacitor/splash-screen
           bun add -d @capacitor/cli @capacitor/android @capacitor/assets
 
       - name: 4. غیرفعال کردن زوم و تنظیم مسیر آفلاین
@@ -30,7 +30,7 @@ jobs:
       - name: 5. بیلد گرفتن از نسخه وب
         run: bun run build
 
-      - name: 6. ساخت پروژه اندروید، تمام‌صفحه واقعی و اعمال آیکون
+      - name: 6. ساخت پروژه اندروید، تمام‌صفحه قطعی و اعمال آیکون
         run: |
           npx cap init "Dialogue" "com.masiha.dialogue" --web-dir=dist
           npx cap add android
@@ -38,13 +38,48 @@ jobs:
           # پشتیبانی از اندروید 8
           sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle || true
           
-          # فعال‌سازی تمام‌صفحه در تم اندروید
-          sed -i 's/<\/style>/    <item name="android:windowFullscreen">true<\/item>\n        <item name="android:windowContentOverlay">@null<\/item>\n    <\/style>/g' android/app/src/main/res/values/styles.xml || true
-          
-          # تزریق کد تمام‌صفحه واقعی (مخفی کردن نوار ساعت و باتری) به MainActivity.java
+          # بازنویسی کامل MainActivity.java برای مخفی‌سازی قطعی نوار ساعت و باتری
           MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java")
-          sed -i 's/package com.masiha.dialogue;/package com.masiha.dialogue;\nimport android.os.Bundle;\nimport android.view.View;\nimport android.view.WindowManager;/g' "$MAIN_ACTIVITY"
-          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(Bundle savedInstanceState) {\n    super.onCreate(savedInstanceState);\n    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);\n    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);\n  }/g' "$MAIN_ACTIVITY"
+          cat << 'EOF' > "$MAIN_ACTIVITY"
+          package com.masiha.dialogue;
+
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  hideSystemUI();
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) {
+                      hideSystemUI();
+                  }
+              }
+
+              private void hideSystemUI() {
+                  getWindow().setFlags(
+                      WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                      WindowManager.LayoutParams.FLAG_FULLSCREEN
+                  );
+                  View decorView = getWindow().getDecorView();
+                  decorView.setSystemUiVisibility(
+                      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                      | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                      | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                      | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                      | View.SYSTEM_UI_FLAG_FULLSCREEN
+                  );
+              }
+          }
+          EOF
 
           # اعمال آیکون و اسپلش اسکرین
           if [ -d "asset" ]; then
